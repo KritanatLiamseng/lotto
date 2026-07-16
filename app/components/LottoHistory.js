@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { backtestDraw } from '../data/lottoHistory';
+import { backtestDraw, getPredictionStats } from '../data/lottoHistory';
 
 export default function LottoHistory({ lottoType = 'thai', lottoData = [] }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -105,25 +105,33 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [] }) {
     );
   };
 
-  // Helper to render the accuracy badge
-  const renderAccuracyBadge = (accuracy, matched = [], topDigits = []) => {
-    if (accuracy === 100) {
-      return (
-        <span style={{ color: '#10B981', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10B981', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>
-          🎯 ตรง 2 ตัว ({matched.join(', ')})
-        </span>
-      );
-    } else if (accuracy === 50) {
-      return (
-        <span style={{ color: 'var(--gold)', background: 'rgba(255, 215, 0, 0.1)', border: '1px solid var(--gold)', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>
-          ⭐ ตรง 1 ตัว ({matched.join(', ')})
-        </span>
-      );
-    }
+  // Helper to render stacked 2-digit and 3-digit accuracy badges
+  const renderStackedBadges = (backtest2, acc3, matched3) => {
+    const render2 = () => {
+      if (backtest2.accuracy === 100) {
+        return <span style={{ color: '#10B981', fontSize: '11px', fontWeight: 'bold' }}>🟢 2 ตัว: ตรง (100%)</span>;
+      } else if (backtest2.accuracy === 50) {
+        return <span style={{ color: 'var(--gold)', fontSize: '11px', fontWeight: 'bold' }}>⭐ 2 ตัว: ตรง 1ตัว (50%)</span>;
+      }
+      return <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '11px' }}>✕ 2 ตัว: พลาด</span>;
+    };
+
+    const render3 = () => {
+      if (acc3 === 100) {
+        return <span style={{ color: '#10B981', fontSize: '11px', fontWeight: 'bold' }}>🟢 3 ตัว: ตรงครบ (100%)</span>;
+      } else if (acc3 === 67) {
+        return <span style={{ color: 'var(--gold)', fontSize: '11px', fontWeight: 'bold' }}>⭐ 3 ตัว: ตรง 2ตัว (66%)</span>;
+      } else if (acc3 === 33) {
+        return <span style={{ color: '#FF8C00', fontSize: '11px', fontWeight: 'bold' }}>🟠 3 ตัว: ตรง 1ตัว (33%)</span>;
+      }
+      return <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '11px' }}>✕ 3 ตัว: พลาด</span>;
+    };
+
     return (
-      <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '12px' }}>
-        ✕ พลาด (เลขคาด: {topDigits.join(',')})
-      </span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+        {render2()}
+        {render3()}
+      </div>
     );
   };
 
@@ -213,14 +221,40 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [] }) {
                   <th style={{ textAlign: 'center' }}>เลขหน้า 3 ตัว</th>
                   <th style={{ textAlign: 'center' }}>เลขท้าย 3 ตัว</th>
                   <th style={{ textAlign: 'center' }}>เลขท้าย 2 ตัว</th>
-                  <th style={{ textAlign: 'center' }}>ความตรงกัน AI</th>
+                  <th style={{ textAlign: 'center' }}>ความตรงกัน AI (2ตัว/3ตัว)</th>
                 </tr>
               </thead>
               <tbody>
                 {currentItems.map((draw, index) => {
                   const globalIdx = lottoData.findIndex(item => item.date === draw.date);
-                  const backtest = backtestDraw(lottoData, globalIdx);
                   const isOldest = globalIdx >= lottoData.length - 1;
+
+                  // 2-digit backtest
+                  const backtest2 = backtestDraw(lottoData, globalIdx);
+
+                  // 3-digit backtest
+                  let acc3 = 0;
+                  let matched3 = [];
+                  if (!isOldest) {
+                    const pastData = lottoData.slice(globalIdx + 1);
+                    const predictions = getPredictionStats(pastData);
+                    const topDigits = predictions.slice(0, 3).map(p => p.digit);
+                    
+                    (draw.threeDigitBack || []).forEach(actStr => {
+                      const actNums = actStr.split("").map(Number);
+                      const currentMatched = [];
+                      actNums.forEach(digit => {
+                        if (topDigits.includes(digit) && !currentMatched.includes(digit)) {
+                          currentMatched.push(digit);
+                        }
+                      });
+                      const currentAcc = Math.round((currentMatched.length / 3) * 100);
+                      if (currentAcc > acc3) {
+                        acc3 = currentAcc;
+                        matched3 = currentMatched;
+                      }
+                    });
+                  }
 
                   return (
                     <tr key={index}>
@@ -256,9 +290,9 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [] }) {
                       {/* Thai accuracy column */}
                       <td style={{ textAlign: 'center' }}>
                         {isOldest ? (
-                          <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>N/A (จุดเริ่มคำนวณ)</span>
+                          <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>N/A (ฐานข้อมูลเริ่มต้น)</span>
                         ) : (
-                          renderAccuracyBadge(backtest.accuracy, backtest.matched, backtest.topDigits)
+                          renderStackedBadges(backtest2, acc3, matched3)
                         )}
                       </td>
                     </tr>
@@ -276,7 +310,7 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [] }) {
                   <th style={{ textAlign: 'center' }}>ผลสลาก (เต็ม)</th>
                   <th style={{ textAlign: 'center' }}>เลขท้าย 3 ตัว</th>
                   <th style={{ textAlign: 'center' }}>เลขท้าย 2 ตัว</th>
-                  <th style={{ textAlign: 'center' }}>ความตรงกัน AI</th>
+                  <th style={{ textAlign: 'center' }}>ความตรงกัน AI (2ตัว/3ตัว)</th>
                 </tr>
               </thead>
               <tbody>
@@ -307,9 +341,32 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [] }) {
 
                       {/* Sub-draw Rows */}
                       {subDraws.map((sub, childIdx) => {
-                        // Extract flat list of all sub-draws of this key type to run backtest
                         const flatSubHistory = lottoData.map(item => item[sub.key]).filter(Boolean);
-                        const backtest = backtestDraw(flatSubHistory, globalIdx);
+                        
+                        // 2-digit backtest
+                        const backtest2 = backtestDraw(flatSubHistory, globalIdx);
+
+                        // 3-digit backtest
+                        let acc3 = 0;
+                        let matched3 = [];
+                        if (!isOldest) {
+                          const subPastData = flatSubHistory.slice(globalIdx + 1);
+                          const subPredictions = getPredictionStats(subPastData);
+                          const subTopDigits = subPredictions.slice(0, 3).map(p => p.digit);
+                          const actual3 = sub.threeDigitBack;
+
+                          if (actual3 && actual3.length === 3) {
+                            const actNums = actual3.split("").map(Number);
+                            const currentMatched = [];
+                            actNums.forEach(digit => {
+                              if (subTopDigits.includes(digit) && !currentMatched.includes(digit)) {
+                                currentMatched.push(digit);
+                              }
+                            });
+                            acc3 = Math.round((currentMatched.length / 3) * 100);
+                            matched3 = currentMatched;
+                          }
+                        }
 
                         return (
                           <tr key={childIdx} style={{
@@ -372,9 +429,9 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [] }) {
                             {/* AI Accuracy Column */}
                             <td style={{ textAlign: 'center' }}>
                               {isOldest ? (
-                                <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>N/A (จุดเริ่มคำนวณ)</span>
+                                <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>N/A (ฐานข้อมูลเริ่มต้น)</span>
                               ) : (
-                                renderAccuracyBadge(backtest.accuracy, backtest.matched, backtest.topDigits)
+                                renderStackedBadges(backtest2, acc3, matched3)
                               )}
                             </td>
                           </tr>
