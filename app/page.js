@@ -5,6 +5,7 @@ import LottoPredictor from './components/LottoPredictor';
 import LottoHistory from './components/LottoHistory';
 import LuckyGenerator from './components/LuckyGenerator';
 import FamousNumbers from './components/FamousNumbers';
+import AIPerformance from './components/AIPerformance';
 
 // Baseline data
 import { lottoHistory, laoLottoHistory, hanoiLottoHistory, getPrimaryDrawsOnly } from './data/lottoHistory';
@@ -398,6 +399,18 @@ export default function Home() {
           📜 ประวัติเลขย้อนหลัง
         </button>
         <button
+          id="tab-btn-performance"
+          onClick={() => setActiveTab('performance')}
+          className={`tab-btn ${activeTab === 'performance' ? 'active' : ''}`}
+          style={{
+            background: activeTab === 'performance' && activeLotto !== 'thai' 
+              ? (activeLotto === 'lao' ? 'linear-gradient(135deg, #0077FF 0%, #00E5FF 100%)' : 'linear-gradient(135deg, #FF007F 0%, #FF5500 100%)')
+              : undefined
+          }}
+        >
+          🎯 ผลงาน AI ย้อนหลัง
+        </button>
+        <button
           id="tab-btn-generator"
           onClick={() => setActiveTab('generator')}
           className={`tab-btn ${activeTab === 'generator' ? 'active' : ''}`}
@@ -427,6 +440,7 @@ export default function Home() {
       <main style={{ minHeight: '500px', marginBottom: '40px' }}>
         {activeTab === 'predictor' && <LottoPredictor lottoType={activeLotto} lottoData={primaryDataForPredictor} />}
         {activeTab === 'history' && <LottoHistory lottoType={activeLotto} lottoData={activeData} />}
+        {activeTab === 'performance' && <AIPerformance lottoType={activeLotto} lottoData={activeData} />}
         {activeTab === 'generator' && <LuckyGenerator lottoType={activeLotto} />}
         {activeTab === 'famous' && <FamousNumbers lottoType={activeLotto} />}
       </main>
