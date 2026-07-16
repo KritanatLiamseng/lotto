@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { backtestDraw } from '../data/lottoHistory';
 
 export default function LottoHistory({ lottoType = 'thai', lottoData = [] }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedYear, setSelectedYear] = useState('ทั้งหมด');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = lottoType === 'thai' ? 8 : 4; // Nested draws take more vertical space, so show fewer parent dates per page for Lao/Hanoi
+  const itemsPerPage = lottoType === 'thai' ? 8 : 4; // Nested draws take more vertical space
 
   // Reset filter selections when lottoType changes
   useEffect(() => {
@@ -104,6 +105,28 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [] }) {
     );
   };
 
+  // Helper to render the accuracy badge
+  const renderAccuracyBadge = (accuracy, matched = [], topDigits = []) => {
+    if (accuracy === 100) {
+      return (
+        <span style={{ color: '#10B981', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10B981', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>
+          🎯 ตรง 2 ตัว ({matched.join(', ')})
+        </span>
+      );
+    } else if (accuracy === 50) {
+      return (
+        <span style={{ color: 'var(--gold)', background: 'rgba(255, 215, 0, 0.1)', border: '1px solid var(--gold)', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>
+          ⭐ ตรง 1 ตัว ({matched.join(', ')})
+        </span>
+      );
+    }
+    return (
+      <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '12px' }}>
+        ✕ พลาด (เลขคาด: {topDigits.join(',')})
+      </span>
+    );
+  };
+
   return (
     <div className="glass-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
@@ -190,42 +213,57 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [] }) {
                   <th style={{ textAlign: 'center' }}>เลขหน้า 3 ตัว</th>
                   <th style={{ textAlign: 'center' }}>เลขท้าย 3 ตัว</th>
                   <th style={{ textAlign: 'center' }}>เลขท้าย 2 ตัว</th>
+                  <th style={{ textAlign: 'center' }}>ความตรงกัน AI</th>
                 </tr>
               </thead>
               <tbody>
-                {currentItems.map((draw, index) => (
-                  <tr key={index}>
-                    <td style={{ fontWeight: '500', minWidth: '150px' }}>{draw.date}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      <span className="numbers-font" style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--gold)', letterSpacing: '2px', textShadow: '0 0 10px var(--gold-glow)' }}>
-                        {draw.firstPrize}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'inline-flex', gap: '8px' }}>
-                        {draw.threeDigitFront.map((num, idx) => (
-                          <span key={idx} className="numbers-font" style={{ background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-card)' }}>
-                            {num}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'inline-flex', gap: '8px' }}>
-                        {draw.threeDigitBack.map((num, idx) => (
-                          <span key={idx} className="numbers-font" style={{ background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-card)' }}>
-                            {num}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <span className="number-ball magenta-ball">
-                        {draw.twoDigitBack}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {currentItems.map((draw, index) => {
+                  const globalIdx = lottoData.findIndex(item => item.date === draw.date);
+                  const backtest = backtestDraw(lottoData, globalIdx);
+                  const isOldest = globalIdx >= lottoData.length - 1;
+
+                  return (
+                    <tr key={index}>
+                      <td style={{ fontWeight: '500', minWidth: '150px' }}>{draw.date}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className="numbers-font" style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--gold)', letterSpacing: '2px', textShadow: '0 0 10px var(--gold-glow)' }}>
+                          {draw.firstPrize}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'inline-flex', gap: '8px' }}>
+                          {draw.threeDigitFront.map((num, idx) => (
+                            <span key={idx} className="numbers-font" style={{ background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-card)' }}>
+                              {num}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'inline-flex', gap: '8px' }}>
+                          {draw.threeDigitBack.map((num, idx) => (
+                            <span key={idx} className="numbers-font" style={{ background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-card)' }}>
+                              {num}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className="number-ball magenta-ball">
+                          {draw.twoDigitBack}
+                        </span>
+                      </td>
+                      {/* Thai accuracy column */}
+                      <td style={{ textAlign: 'center' }}>
+                        {isOldest ? (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>N/A (จุดเริ่มคำนวณ)</span>
+                        ) : (
+                          renderAccuracyBadge(backtest.accuracy, backtest.matched, backtest.topDigits)
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           ) : (
@@ -238,15 +276,19 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [] }) {
                   <th style={{ textAlign: 'center' }}>ผลสลาก (เต็ม)</th>
                   <th style={{ textAlign: 'center' }}>เลขท้าย 3 ตัว</th>
                   <th style={{ textAlign: 'center' }}>เลขท้าย 2 ตัว</th>
+                  <th style={{ textAlign: 'center' }}>ความตรงกัน AI</th>
                 </tr>
               </thead>
               <tbody>
                 {currentItems.map((draw, parentIdx) => {
+                  const globalIdx = lottoData.findIndex(item => item.date === draw.date);
+                  const isOldest = globalIdx >= lottoData.length - 1;
+
                   // Extract available sub-draws
                   const subDraws = [];
                   if (lottoType === 'lao') {
                     if (draw.star) subDraws.push({ ...draw.star, key: 'star' });
-                    if (draw.development) subDraws.push({ ...draw.development, key: 'dev' });
+                    if (draw.development) subDraws.push({ ...draw.development, key: 'development' });
                     if (draw.samakkee) subDraws.push({ ...draw.samakkee, key: 'samakkee' });
                   } else if (lottoType === 'hanoi') {
                     if (draw.special) subDraws.push({ ...draw.special, key: 'special' });
@@ -258,71 +300,86 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [] }) {
                     <React.Fragment key={parentIdx}>
                       {/* Parent Date Row Header */}
                       <tr style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
-                        <td colSpan="5" style={{ padding: '12px 24px', fontWeight: 'bold', color: '#FFFFFF', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                        <td colSpan="6" style={{ padding: '12px 24px', fontWeight: 'bold', color: '#FFFFFF', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                           📅 ประจำงวดวันที่: <span style={{ color: lottoType === 'lao' ? '#00E5FF' : '#FF007F' }}>{draw.date}</span>
                         </td>
                       </tr>
 
                       {/* Sub-draw Rows */}
-                      {subDraws.map((sub, childIdx) => (
-                        <tr key={childIdx} style={{
-                          borderLeft: `2px solid ${
-                            sub.key === 'dev' || sub.key === 'normal' 
-                              ? 'var(--gold)' 
-                              : sub.key === 'star' || sub.key === 'special' 
-                              ? '#FF8C00' 
-                              : '#FF00FF'
-                          }`
-                        }}>
-                          {/* Time Column */}
-                          <td style={{ paddingLeft: '32px', color: '#FFFFFF', fontWeight: '500' }}>
-                            ⏰ {sub.time}
-                          </td>
+                      {subDraws.map((sub, childIdx) => {
+                        // Extract flat list of all sub-draws of this key type to run backtest
+                        const flatSubHistory = lottoData.map(item => item[sub.key]).filter(Boolean);
+                        const backtest = backtestDraw(flatSubHistory, globalIdx);
 
-                          {/* Sub-lotto Badge Column */}
-                          <td style={{ textAlign: 'center' }}>
-                            {getSubLottoBadge(sub.name)}
-                          </td>
+                        return (
+                          <tr key={childIdx} style={{
+                            borderLeft: `2px solid ${
+                              sub.key === 'development' || sub.key === 'normal' 
+                                ? 'var(--gold)' 
+                                : sub.key === 'star' || sub.key === 'special' 
+                                ? '#FF8C00' 
+                                : '#FF00FF'
+                            }`
+                          }}>
+                            {/* Time Column */}
+                            <td style={{ paddingLeft: '32px', color: '#FFFFFF', fontWeight: '500' }}>
+                              ⏰ {sub.time}
+                            </td>
 
-                          {/* Full Result Output */}
-                          <td style={{ textAlign: 'center' }}>
-                            <span className="numbers-font" style={{
-                              fontWeight: 'bold',
-                              fontSize: '18px',
-                              letterSpacing: '2px',
-                              color: sub.key === 'dev' || sub.key === 'normal' ? 'var(--gold)' : '#FFFFFF'
-                            }}>
-                              {sub.firstPrize}
-                            </span>
-                          </td>
+                            {/* Sub-lotto Badge Column */}
+                            <td style={{ textAlign: 'center' }}>
+                              {getSubLottoBadge(sub.name)}
+                            </td>
 
-                          {/* 3-Digit Out */}
-                          <td style={{ textAlign: 'center' }}>
-                            <span className="numbers-font" style={{ background: 'rgba(255,255,255,0.04)', padding: '3px 8px', borderRadius: '4px', border: '1px solid var(--border-card)' }}>
-                              {sub.threeDigitBack}
-                            </span>
-                          </td>
+                            {/* Full Result Output */}
+                            <td style={{ textAlign: 'center' }}>
+                              <span className="numbers-font" style={{
+                                fontWeight: 'bold',
+                                fontSize: '18px',
+                                letterSpacing: '2px',
+                                color: sub.key === 'development' || sub.key === 'normal' ? 'var(--gold)' : '#FFFFFF'
+                              }}>
+                                {sub.firstPrize}
+                              </span>
+                            </td>
 
-                          {/* 2-Digit Out Ball */}
-                          <td style={{ textAlign: 'center' }}>
-                            <span className={`number-ball ${
-                              sub.key === 'dev' || sub.key === 'normal' 
-                                ? (lottoType === 'lao' ? 'cyan-ball' : 'magenta-ball')
-                                : sub.key === 'star' || sub.key === 'special'
-                                ? 'gold-ball'
-                                : 'cyan-ball'
-                            }`} style={{
-                              width: '32px',
-                              height: '32px',
-                              fontSize: '14px',
-                              margin: 0,
-                              color: (sub.key === 'star' || sub.key === 'special' || (sub.key === 'dev' && lottoType === 'lao')) ? '#000' : '#FFF'
-                            }}>
-                              {sub.twoDigitBack}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
+                            {/* 3-Digit Out */}
+                            <td style={{ textAlign: 'center' }}>
+                              <span className="numbers-font" style={{ background: 'rgba(255,255,255,0.04)', padding: '3px 8px', borderRadius: '4px', border: '1px solid var(--border-card)' }}>
+                                {sub.threeDigitBack}
+                              </span>
+                            </td>
+
+                            {/* 2-Digit Out Ball */}
+                            <td style={{ textAlign: 'center' }}>
+                              <span className={`number-ball ${
+                                sub.key === 'development' || sub.key === 'normal' 
+                                  ? (lottoType === 'lao' ? 'cyan-ball' : 'magenta-ball')
+                                  : sub.key === 'star' || sub.key === 'special'
+                                  ? 'gold-ball'
+                                  : 'cyan-ball'
+                              }`} style={{
+                                width: '32px',
+                                height: '32px',
+                                fontSize: '14px',
+                                margin: 0,
+                                color: (sub.key === 'star' || sub.key === 'special' || (sub.key === 'development' && lottoType === 'lao')) ? '#000' : '#FFF'
+                              }}>
+                                {sub.twoDigitBack}
+                              </span>
+                            </td>
+
+                            {/* AI Accuracy Column */}
+                            <td style={{ textAlign: 'center' }}>
+                              {isOldest ? (
+                                <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>N/A (จุดเริ่มคำนวณ)</span>
+                              ) : (
+                                renderAccuracyBadge(backtest.accuracy, backtest.matched, backtest.topDigits)
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </React.Fragment>
                   );
                 })}

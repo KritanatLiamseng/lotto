@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getPredictionStats, getOddEvenRatio, getHighLowRatio, getDigitStats } from '../data/lottoHistory';
+import { getPredictionStats, getOddEvenRatio, getHighLowRatio, getDigitStats, getGlobalAccuracy } from '../data/lottoHistory';
 
 export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
   const [predictions, setPredictions] = useState([]);
   const [oddEven, setOddEven] = useState({ odd: 50, even: 50 });
   const [highLow, setHighLow] = useState({ high: 50, low: 50 });
   const [digitStats, setDigitStats] = useState([]);
+  const [globalAccuracy, setGlobalAccuracy] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,6 +18,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
     setOddEven(getOddEvenRatio(lottoData));
     setHighLow(getHighLowRatio(lottoData));
     setDigitStats(getDigitStats(lottoData).sort((a, b) => b.count - a.count));
+    setGlobalAccuracy(getGlobalAccuracy(lottoData));
     setLoading(false);
   }, [lottoData, lottoType]);
 
@@ -70,7 +72,6 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
     `${topDigits[0]}${predictions[3]?.digit || '9'}`
   ];
   
-  // Lao typically recommends 4-digit numbers as well
   const recommendedThreeDigits = [
     `${topDigits[0]}${topDigits[1]}${topDigits[2]}`,
     `9${topDigits[0]}${topDigits[1]}`,
@@ -182,6 +183,26 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
 
       {/* Right panel - Side stats widgets */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {/* AI Accuracy Backtest Widget */}
+        <div className="glass-card" style={{
+          border: '1px solid rgba(16, 185, 129, 0.3)',
+          background: 'rgba(16, 185, 129, 0.03)',
+          boxShadow: '0 0 20px rgba(16, 185, 129, 0.05)'
+        }}>
+          <h3 style={{ fontSize: '18px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🏆 อัตราแม่นยำย้อนหลังของ AI
+          </h3>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+            <span className="numbers-font" style={{ fontSize: '48px', fontWeight: 'bold', color: 'var(--success)', textShadow: '0 0 15px rgba(16, 185, 129, 0.3)' }}>
+              {globalAccuracy}%
+            </span>
+            <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>ประเมินผล 10 งวดล่าสุด</span>
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px', lineHeight: '1.4' }}>
+            คำนวณย้อนกลับ (Backtesting) เพื่อเช็คว่าตัวเลขรางวัลที่ออกจริง ตรงกับที่ระบบทำนายเป็นเลขเด่น Top 3 หรือไม่
+          </p>
+        </div>
+
         {/* Odd vs Even widget */}
         <div className="glass-card">
           <h3 style={{ fontSize: '18px', marginBottom: '20px' }}>⚖️ อัตราส่วน เลขคู่-คี่</h3>
@@ -197,7 +218,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
           </div>
           
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '12px', lineHeight: '1.4' }}>
-            จากสถิติงวดก่อนๆ ตัวเลขท้ายมีแนวโน้มออกทาง {oddEven.odd > oddEven.even ? 'เลขคี่' : 'เลขคู่'} มากกว่าเล็กน้อย
+            สัดส่วนการออกสลับระหว่างเลขคู่และเลขคี่ในรางวัลเลขท้ายของประเภทหวยนี้
           </p>
         </div>
 

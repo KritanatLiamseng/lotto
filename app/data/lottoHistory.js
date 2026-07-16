@@ -694,3 +694,53 @@ export function getHighLowRatio(history = []) {
     low: Math.round((low / (total || 1)) * 100)
   };
 }
+
+// Backtesting function: Predicts digit probability based on past data (history.slice(index + 1))
+// and checks if the actual result (draw at index) matches the top 3 predicted digits.
+export function backtestDraw(history = [], index = 0) {
+  if (index >= history.length - 1) return { accuracy: 0, matched: [] };
+  
+  const pastData = history.slice(index + 1);
+  const predictions = getPredictionStats(pastData);
+  
+  // Top 3 predicted digits
+  const topDigits = predictions.slice(0, 3).map(p => p.digit);
+  
+  // Actual 2-digit back
+  const actual = history[index].twoDigitBack;
+  if (!actual || actual.length !== 2) return { accuracy: 0, matched: [] };
+  
+  const actD1 = parseInt(actual[0]);
+  const actD2 = parseInt(actual[1]);
+  
+  const matched = [];
+  if (topDigits.includes(actD1)) matched.push(actD1);
+  if (topDigits.includes(actD2) && actD1 !== actD2) matched.push(actD2);
+  
+  let accuracy = 0;
+  if (matched.length === 2) accuracy = 100;
+  else if (matched.length === 1) accuracy = 50;
+  
+  return {
+    accuracy,
+    matched,
+    topDigits
+  };
+}
+
+// Global backtest accuracy: Average of the last 10 draws (excluding the oldest since we need past data)
+export function getGlobalAccuracy(history = []) {
+  if (history.length <= 1) return 0;
+  
+  const limit = Math.min(history.length - 1, 10);
+  let totalAccuracy = 0;
+  let count = 0;
+  
+  for (let i = 0; i < limit; i++) {
+    const res = backtestDraw(history, i);
+    totalAccuracy += res.accuracy;
+    count++;
+  }
+  
+  return count > 0 ? Math.round(totalAccuracy / count) : 0;
+}
