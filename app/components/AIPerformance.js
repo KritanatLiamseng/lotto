@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { backtestDraw } from '../data/lottoHistory';
+import { getPredictionStats } from '../data/lottoHistory';
 
 export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
+  const [digitMode, setDigitMode] = useState('2digit'); // '2digit', '3digit'
   const [performanceList, setPerformanceList] = useState([]);
   const [stats, setStats] = useState({ total: 0, fullHits: 0, partialHits: 0, accuracy: 0 });
   const [activeSubFilter, setActiveSubFilter] = useState('all'); // 'all', 'dev'/'normal', 'star'/'special', 'samakkee'/'vip'
 
   useEffect(() => {
-    // Generate validation reports for all draws in lottoData
     const reports = [];
     let totalEvaluated = 0;
     let fullHitsCount = 0;
@@ -21,62 +21,214 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
       const isOldest = parentIdx >= lottoData.length - 1;
       if (isOldest) return;
 
-      if (lottoType === 'thai') {
-        const backtest = backtestDraw(lottoData, parentIdx);
-        reports.push({
-          date: draw.date,
-          drawName: "หวยรัฐบาลไทย",
-          time: "16:00 น.",
-          lottoKey: "thai",
-          aiDigits: backtest.topDigits,
-          actualResult: draw.twoDigitBack,
-          accuracy: backtest.accuracy,
-          matched: backtest.matched
-        });
+      const pastData = lottoData.slice(parentIdx + 1);
+      const predictions = getPredictionStats(pastData);
+      const topDigits = predictions.slice(0, 3).map(p => p.digit);
 
-        totalEvaluated++;
-        sumAccuracy += backtest.accuracy;
-        if (backtest.accuracy === 100) fullHitsCount++;
-        else if (backtest.accuracy === 50) partialHitsCount++;
-      } else {
-        // Nested sub-draws (Lao / Hanoi)
-        const subDrawKeys = lottoType === 'lao' 
-          ? [
-              { key: 'star', name: 'ลาวสตาร์', time: '15:45 น.' },
-              { key: 'development', name: 'หวยลาวพัฒนา', time: '20:30 น.' },
-              { key: 'samakkee', name: 'ลาวสามัคคี', time: '21:30 น.' }
-            ]
-          : [
-              { key: 'special', name: 'ฮานอยพิเศษ', time: '17:30 น.' },
-              { key: 'normal', name: 'ฮานอยปกติ', time: '18:30 น.' },
-              { key: 'vip', name: 'ฮานอย VIP', time: '19:30 น.' }
-            ];
+      if (digitMode === '2digit') {
+        // --- 2 DIGIT BACKTEST LOGIC ---
+        if (lottoType === 'thai') {
+          const actual = draw.twoDigitBack;
+          if (!actual || actual.length !== 2) return;
+          const actD1 = parseInt(actual[0]);
+          const actD2 = parseInt(actual[1]);
 
-        subDrawKeys.forEach(sub => {
-          if (!draw[sub.key]) return;
-          
-          // Extract the flat list of all draws of this key type (across all dates) to run backtest
-          const flatSubHistory = lottoData.map(item => item[sub.key]).filter(Boolean);
-          
-          // Backtest this specific sub-draw
-          const backtest = backtestDraw(flatSubHistory, parentIdx);
+          const matched = [];
+          if (topDigits.includes(actD1)) matched.push(actD1);
+          if (topDigits.includes(actD2) && actD1 !== actD2) matched.push(actD2);
+
+          let accuracy = 0;
+          if (matched.length === 2) accuracy = 100;
+          else if (matched.length === 1) accuracy = 50;
 
           reports.push({
             date: draw.date,
-            drawName: sub.name,
-            time: sub.time,
-            lottoKey: sub.key,
-            aiDigits: backtest.topDigits,
-            actualResult: draw[sub.key].twoDigitBack,
-            accuracy: backtest.accuracy,
-            matched: backtest.matched
+            drawName: "หวยรัฐบาลไทย",
+            time: "16:00 น.",
+            lottoKey: "thai",
+            aiDigits: topDigits,
+            actualResult: actual,
+            accuracy,
+            matched,
+            exactHit: false
           });
 
           totalEvaluated++;
-          sumAccuracy += backtest.accuracy;
-          if (backtest.accuracy === 100) fullHitsCount++;
-          else if (backtest.accuracy === 50) partialHitsCount++;
-        });
+          sumAccuracy += accuracy;
+          if (accuracy === 100) fullHitsCount++;
+          else if (accuracy === 50) partialHitsCount++;
+        } else {
+          // Nested draws (Lao / Hanoi)
+          const subDrawKeys = lottoType === 'lao' 
+            ? [
+                { key: 'star', name: 'ลาวสตาร์', time: '15:45 น.' },
+                { key: 'development', name: 'หวยลาวพัฒนา', time: '20:30 น.' },
+                { key: 'samakkee', name: 'ลาวสามัคคี', time: '21:30 น.' }
+              ]
+            : [
+                { key: 'special', name: 'ฮานอยพิเศษ', time: '17:30 น.' },
+                { key: 'normal', name: 'ฮานอยปกติ', time: '18:30 น.' },
+                { key: 'vip', name: 'ฮานอย VIP', time: '19:30 น.' }
+              ];
+
+          subDrawKeys.forEach(sub => {
+            if (!draw[sub.key]) return;
+            const flatSubHistory = lottoData.map(item => item[sub.key]).filter(Boolean);
+            const subPastData = flatSubHistory.slice(parentIdx + 1);
+            const subPredictions = getPredictionStats(subPastData);
+            const subTopDigits = subPredictions.slice(0, 3).map(p => p.digit);
+
+            const actual = draw[sub.key].twoDigitBack;
+            if (!actual || actual.length !== 2) return;
+            const actD1 = parseInt(actual[0]);
+            const actD2 = parseInt(actual[1]);
+
+            const matched = [];
+            if (subTopDigits.includes(actD1)) matched.push(actD1);
+            if (subTopDigits.includes(actD2) && actD1 !== actD2) matched.push(actD2);
+
+            let accuracy = 0;
+            if (matched.length === 2) accuracy = 100;
+            else if (matched.length === 1) accuracy = 50;
+
+            reports.push({
+              date: draw.date,
+              drawName: sub.name,
+              time: sub.time,
+              lottoKey: sub.key,
+              aiDigits: subTopDigits,
+              actualResult: actual,
+              accuracy,
+              matched,
+              exactHit: false
+            });
+
+            totalEvaluated++;
+            sumAccuracy += accuracy;
+            if (accuracy === 100) fullHitsCount++;
+            else if (accuracy === 50) partialHitsCount++;
+          });
+        }
+      } else {
+        // --- 3 DIGIT BACKTEST LOGIC ---
+        // Construct recommended 3-digit sets based on top predicted digits
+        const getThreeDigitRecs = (top) => {
+          return [
+            `${top[0]}${top[1]}${top[2]}`,
+            `9${top[0]}${top[1]}`,
+            `5${top[0]}${top[2]}`
+          ];
+        };
+
+        if (lottoType === 'thai') {
+          const recs = getThreeDigitRecs(topDigits);
+          const actualBacks = draw.threeDigitBack || []; // Array of two 3-digit strings e.g. ["746", "427"]
+          
+          if (actualBacks.length === 0) return;
+
+          // Find the best matching actual 3-digit back number
+          let bestAccuracy = 0;
+          let bestMatchedDigits = [];
+          let exactHitMatch = false;
+          let displayWinningNum = actualBacks[0];
+
+          actualBacks.forEach(actStr => {
+            if (actStr.length !== 3) return;
+            
+            // Check exact match
+            const isExact = recs.includes(actStr);
+            
+            // Check individual digit matches
+            const actNums = actStr.split("").map(Number);
+            const currentMatched = [];
+            actNums.forEach(digit => {
+              if (topDigits.includes(digit) && !currentMatched.includes(digit)) {
+                currentMatched.push(digit);
+              }
+            });
+
+            // Calculate accuracy out of 3 digits
+            const currentAcc = Math.round((currentMatched.length / 3) * 100);
+            if (currentAcc > bestAccuracy || (currentAcc === bestAccuracy && isExact)) {
+              bestAccuracy = currentAcc;
+              bestMatchedDigits = currentMatched;
+              exactHitMatch = isExact;
+              displayWinningNum = actStr;
+            }
+          });
+
+          reports.push({
+            date: draw.date,
+            drawName: "หวยรัฐบาลไทย",
+            time: "16:00 น.",
+            lottoKey: "thai",
+            aiDigits: topDigits,
+            aiRecSets: recs,
+            actualResult: displayWinningNum,
+            accuracy: bestAccuracy,
+            matched: bestMatchedDigits,
+            exactHit: exactHitMatch
+          });
+
+          totalEvaluated++;
+          sumAccuracy += bestAccuracy;
+          if (bestAccuracy >= 66) fullHitsCount++; // Matched 2 or 3 digits
+          else if (bestAccuracy >= 33) partialHitsCount++; // Matched 1 digit
+        } else {
+          // Nested draws (Lao / Hanoi)
+          const subDrawKeys = lottoType === 'lao' 
+            ? [
+                { key: 'star', name: 'ลาวสตาร์', time: '15:45 น.' },
+                { key: 'development', name: 'หวยลาวพัฒนา', time: '20:30 น.' },
+                { key: 'samakkee', name: 'ลาวสามัคคี', time: '21:30 น.' }
+              ]
+            : [
+                { key: 'special', name: 'ฮานอยพิเศษ', time: '17:30 น.' },
+                { key: 'normal', name: 'ฮานอยปกติ', time: '18:30 น.' },
+                { key: 'vip', name: 'ฮานอย VIP', time: '19:30 น.' }
+              ];
+
+          subDrawKeys.forEach(sub => {
+            if (!draw[sub.key]) return;
+            const flatSubHistory = lottoData.map(item => item[sub.key]).filter(Boolean);
+            const subPastData = flatSubHistory.slice(parentIdx + 1);
+            const subPredictions = getPredictionStats(subPastData);
+            const subTopDigits = subPredictions.slice(0, 3).map(p => p.digit);
+            const recs = getThreeDigitRecs(subTopDigits);
+
+            const actual = draw[sub.key].threeDigitBack;
+            if (!actual || actual.length !== 3) return;
+
+            const isExact = recs.includes(actual);
+            const actNums = actual.split("").map(Number);
+            const matched = [];
+            actNums.forEach(digit => {
+              if (subTopDigits.includes(digit) && !matched.includes(digit)) {
+                matched.push(digit);
+              }
+            });
+
+            const accuracy = Math.round((matched.length / 3) * 100);
+
+            reports.push({
+              date: draw.date,
+              drawName: sub.name,
+              time: sub.time,
+              lottoKey: sub.key,
+              aiDigits: subTopDigits,
+              aiRecSets: recs,
+              actualResult: actual,
+              accuracy,
+              matched,
+              exactHit: isExact
+            });
+
+            totalEvaluated++;
+            sumAccuracy += accuracy;
+            if (accuracy >= 66) fullHitsCount++;
+            else if (accuracy >= 33) partialHitsCount++;
+          });
+        }
       }
     });
 
@@ -87,7 +239,7 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
       partialHits: partialHitsCount,
       accuracy: totalEvaluated > 0 ? Math.round(sumAccuracy / totalEvaluated) : 0
     });
-  }, [lottoType, lottoData]);
+  }, [lottoType, lottoData, digitMode]);
 
   // Filter sub-draws based on selected sub-filter
   const filteredReports = performanceList.filter(rep => {
@@ -107,7 +259,7 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
   const getSubFilterButtons = () => {
     if (lottoType === 'thai') return null;
     return (
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         {[
           { id: 'all', label: '⚡ ทุกรอบย่อย' },
           { id: 'primary', label: lottoType === 'lao' ? '🟡 หวยลาวพัฒนา (20:30)' : '🟡 ฮานอยปกติ (18:30)' },
@@ -139,6 +291,41 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
+      {/* 2-Digit / 3-Digit Mode Selector */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.02)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-card)' }}>
+          {[
+            { id: '2digit', label: '🟢 ตรวจผลเลขท้าย 2 ตัว' },
+            { id: '3digit', label: '🔵 ตรวจผลเลขท้าย 3 ตัว' }
+          ].map(mode => (
+            <button
+              key={mode.id}
+              onClick={() => setDigitMode(mode.id)}
+              style={{
+                background: digitMode === mode.id 
+                  ? (lottoType === 'lao' ? 'linear-gradient(135deg, #0077FF 0%, #00E5FF 100%)' : lottoType === 'hanoi' ? 'linear-gradient(135deg, #FF007F 0%, #FF5500 100%)' : 'linear-gradient(135deg, var(--primary) 0%, #D000FF 100%)') 
+                  : 'transparent',
+                color: '#FFFFFF',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-sans)',
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+          โหมดการตรวจ: <strong style={{ color: '#FFF' }}>{digitMode === '2digit' ? 'เลขท้าย 2 ตัว (วิ่ง/คู่รวด)' : 'เลขท้าย 3 ตัว (กลุ่มเด่น/สามตรง)'}</strong>
+        </div>
+      </div>
+
       {/* Performance Summary Dashboard */}
       <div className="glass-card" style={{
         display: 'grid',
@@ -147,11 +334,13 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
         borderLeft: `5px solid ${lottoType === 'lao' ? '#00E5FF' : lottoType === 'hanoi' ? '#FF007F' : 'var(--primary)'}`
       }}>
         <div>
-          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>ประสิทธิภาพระบบ AI โดยรวม</span>
+          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>ประสิทธิภาพการทำนายสะสม</span>
           <div className="numbers-font" style={{ fontSize: '42px', fontWeight: 'bold', color: 'var(--success)', textShadow: '0 0 10px rgba(16, 185, 129, 0.2)' }}>
             {stats.accuracy}%
           </div>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>ตรงเลขเด่น Top 3 สะสม</span>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+            {digitMode === '2digit' ? 'เก็งตรงเลขเด่น Top 3' : 'เก็งสัดส่วนหลัก 3 ตัว'}
+          </span>
         </div>
 
         <div>
@@ -159,23 +348,31 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
           <div className="numbers-font" style={{ fontSize: '42px', fontWeight: 'bold', color: '#FFF' }}>
             {stats.total} <span style={{ fontSize: '18px', color: 'var(--text-muted)' }}>งวด</span>
           </div>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>ประเมินย้อนหลังจากดาต้าเบส</span>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>วิเคราะห์ย้อนหลังจากฐานข้อมูล</span>
         </div>
 
         <div>
-          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>ตรงเป้าแบบคู่ 2 ตัว (100% Hit)</span>
+          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+            {digitMode === '2digit' ? 'ตรง 2 ตัวครบ (100% Hit)' : 'ตรงกลุ่มเด่น 2-3 ตัว (High Hit)'}
+          </span>
           <div className="numbers-font" style={{ fontSize: '42px', fontWeight: 'bold', color: '#10B981' }}>
             {stats.fullHits} <span style={{ fontSize: '18px', color: 'var(--text-muted)' }}>รอบ</span>
           </div>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>เลขออกอยู่ใน Top 3 ทั้งสองหลัก</span>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+            {digitMode === '2digit' ? 'เลขออกตรงกลุ่มเด่นทั้งสองตัว' : 'เลขรางวัลมีเลขเด่น 2 ตัวขึ้นไป'}
+          </span>
         </div>
 
         <div>
-          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>ตรงหลักสิบ/หน่วย (50% Hit)</span>
+          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+            {digitMode === '2digit' ? 'ตรง 1 ตัว (50% Hit)' : 'ตรงกลุ่มเด่น 1 ตัว (Low Hit)'}
+          </span>
           <div className="numbers-font" style={{ fontSize: '42px', fontWeight: 'bold', color: 'var(--gold)' }}>
             {stats.partialHits} <span style={{ fontSize: '18px', color: 'var(--text-muted)' }}>รอบ</span>
           </div>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>เลขออกอยู่ใน Top 3 หนึ่งตำแหน่ง</span>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+            {digitMode === '2digit' ? 'เลขออกตรงกลุ่มเด่นตัวเดียว' : 'มีเลขเด่นตรงในรางวัล 1 ตัว'}
+          </span>
         </div>
       </div>
 
@@ -186,25 +383,56 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {filteredReports.length > 0 ? (
           filteredReports.map((rep, idx) => {
-            const isFullHit = rep.accuracy === 100;
-            const isPartialHit = rep.accuracy === 50;
-            
-            const cardBorder = isFullHit 
-              ? '1px solid rgba(16, 185, 129, 0.4)' 
-              : isPartialHit 
-              ? '1px solid rgba(255, 215, 0, 0.3)' 
-              : '1px solid var(--border-card)';
-              
-            const cardBg = isFullHit 
-              ? 'rgba(16, 185, 129, 0.03)' 
-              : isPartialHit 
-              ? 'rgba(255, 215, 0, 0.02)' 
-              : 'rgba(255, 255, 255, 0.01)';
+            let borderStyle = '1px solid var(--border-card)';
+            let bgStyle = 'rgba(255, 255, 255, 0.01)';
+            let hitText = '';
+            let hitColor = 'var(--text-muted)';
+
+            if (digitMode === '2digit') {
+              if (rep.accuracy === 100) {
+                borderStyle = '1px solid rgba(16, 185, 129, 0.4)';
+                bgStyle = 'rgba(16, 185, 129, 0.03)';
+                hitText = '🎯 ตรงเต็ม 2 ตัว (100%)';
+                hitColor = '#10B981';
+              } else if (rep.accuracy === 50) {
+                borderStyle = '1px solid rgba(255, 215, 0, 0.3)';
+                bgStyle = 'rgba(255, 215, 0, 0.02)';
+                hitText = '⭐ ตรง 1 ตัว (50%)';
+                hitColor = 'var(--gold)';
+              } else {
+                hitText = '✕ ไม่ตรง (0%)';
+              }
+            } else {
+              // 3-digit display styling
+              if (rep.exactHit) {
+                borderStyle = '1px solid rgba(255, 0, 255, 0.5)';
+                bgStyle = 'rgba(255, 0, 255, 0.04)';
+                hitText = '🔥 สามตัวตรง! (100%)';
+                hitColor = '#FF00FF';
+              } else if (rep.accuracy === 100) {
+                borderStyle = '1px solid rgba(16, 185, 129, 0.4)';
+                bgStyle = 'rgba(16, 185, 129, 0.03)';
+                hitText = '🎯 ตรงเด่นครบ 3 ตัว (100%)';
+                hitColor = '#10B981';
+              } else if (rep.accuracy === 67) {
+                borderStyle = '1px solid rgba(255, 215, 0, 0.3)';
+                bgStyle = 'rgba(255, 215, 0, 0.02)';
+                hitText = '⭐ ตรงเด่น 2 ตัว (66%)';
+                hitColor = 'var(--gold)';
+              } else if (rep.accuracy === 33) {
+                borderStyle = '1px solid rgba(255, 140, 0, 0.3)';
+                bgStyle = 'rgba(255, 140, 0, 0.02)';
+                hitText = '🟠 ตรงเด่น 1 ตัว (33%)';
+                hitColor = '#FF8C00';
+              } else {
+                hitText = '✕ ไม่ตรง (0%)';
+              }
+            }
 
             return (
               <div key={idx} className="glass-card" style={{
-                border: cardBorder,
-                background: cardBg,
+                border: borderStyle,
+                background: bgStyle,
                 padding: '20px',
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -227,71 +455,107 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
                     }}>
                       • {rep.drawName}
                     </span>
+                    {rep.exactHit && (
+                      <span style={{
+                        background: 'linear-gradient(135deg, #FF00FF 0%, #FF0055 100%)',
+                        color: '#FFF',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontSize: '10px',
+                        fontWeight: 'bold',
+                        animation: 'pulse 1.5s infinite'
+                      }}>
+                        ตรง 3 ตรง!
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {/* AI Recommendations vs Actual */}
+                {/* AI Predictions vs Actual Results */}
                 <div style={{ display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  {/* AI Recommendations */}
+                  {/* AI Predictions */}
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>AI วิเคราะห์เด่น Top 3</div>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      {rep.aiDigits.map((digit, dIdx) => (
-                        <span key={dIdx} className="numbers-font" style={{
-                          background: 'rgba(255,255,255,0.06)',
-                          color: '#FFFFFF',
-                          padding: '4px 8px',
-                          borderRadius: '6px',
-                          fontWeight: 'bold',
-                          fontSize: '14px',
-                          border: rep.matched.includes(digit) ? `1px solid ${isFullHit ? '#10B981' : 'var(--gold)'}` : '1px solid transparent',
-                          boxShadow: rep.matched.includes(digit) ? `0 0 10px ${isFullHit ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 215, 0, 0.2)'}` : 'none'
-                        }}>
-                          {digit}
-                        </span>
-                      ))}
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                      {digitMode === '2digit' ? 'AI วิเคราะห์เด่น Top 3' : 'เลข 3 ตัวคาดการณ์หลัก'}
                     </div>
+                    {digitMode === '2digit' ? (
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        {rep.aiDigits.map((digit, dIdx) => (
+                          <span key={dIdx} className="numbers-font" style={{
+                            background: 'rgba(255,255,255,0.06)',
+                            color: '#FFFFFF',
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            fontWeight: 'bold',
+                            fontSize: '14px',
+                            border: rep.matched.includes(digit) ? `1px solid ${rep.accuracy === 100 ? '#10B981' : 'var(--gold)'}` : '1px solid transparent',
+                            boxShadow: rep.matched.includes(digit) ? `0 0 10px ${rep.accuracy === 100 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 215, 0, 0.2)'}` : 'none'
+                          }}>
+                            {digit}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        {rep.aiRecSets?.map((set, sIdx) => {
+                          const isThisSetHit = rep.actualResult === set;
+                          return (
+                            <span key={sIdx} className="numbers-font" style={{
+                              background: isThisSetHit ? 'rgba(255, 0, 255, 0.15)' : 'rgba(255,255,255,0.04)',
+                              color: isThisSetHit ? '#FF00FF' : '#FFFFFF',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              fontWeight: 'bold',
+                              fontSize: '13px',
+                              border: isThisSetHit ? '1px solid #FF00FF' : '1px solid rgba(255,255,255,0.06)'
+                            }}>
+                              {set}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
-                  {/* VS symbol */}
                   <div style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 'bold' }}>VS</div>
 
-                  {/* Actual Winning digits */}
+                  {/* Actual Results */}
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>เลขท้ายที่ออกจริง</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                      {digitMode === '2digit' ? 'เลขท้ายที่ออกจริง' : 'เลขท้าย 3 ตัวจริง'}
+                    </div>
                     <span className={`number-ball ${
-                      isFullHit ? 'cyan-ball' : isPartialHit ? 'gold-ball' : 'cyan-ball'
+                      digitMode === '2digit' 
+                        ? (rep.accuracy === 100 ? 'cyan-ball' : rep.accuracy === 50 ? 'gold-ball' : 'cyan-ball')
+                        : (rep.exactHit ? 'magenta-ball' : rep.accuracy === 100 ? 'cyan-ball' : 'gold-ball')
                     }`} style={{ 
-                      width: '38px', 
+                      width: digitMode === '2digit' ? '38px' : '52px', 
                       height: '38px', 
-                      fontSize: '16px', 
+                      fontSize: '15px', 
                       margin: 0,
-                      color: isPartialHit ? '#000' : '#FFF',
-                      background: isFullHit ? 'radial-gradient(circle at 30% 30%, #E8F5E9 0%, #10B981 40%, #064E3B 100%)' : undefined
+                      borderRadius: digitMode === '2digit' ? '50%' : '8px',
+                      color: (digitMode === '2digit' && rep.accuracy === 50) ? '#000' : '#FFF',
+                      background: rep.exactHit 
+                        ? 'radial-gradient(circle at 30% 30%, #FFD2FF 0%, #FF00FF 40%, #800080 100%)' 
+                        : (digitMode === '2digit' && rep.accuracy === 100)
+                        ? 'radial-gradient(circle at 30% 30%, #E8F5E9 0%, #10B981 40%, #064E3B 100%)' 
+                        : undefined
                     }}>
                       {rep.actualResult}
                     </span>
                   </div>
                 </div>
 
-                {/* Validation outcome report */}
-                <div style={{ minWidth: '150px', textAlign: 'right' }}>
-                  {isFullHit ? (
-                    <div style={{ color: '#10B981', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                      <span style={{ fontSize: '16px' }}>🎯 ตรงเต็ม 2 ตัว</span>
-                      <span className="numbers-font" style={{ fontSize: '12px' }}>แม่นยำ 100%</span>
-                    </div>
-                  ) : isPartialHit ? (
-                    <div style={{ color: 'var(--gold)', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                      <span style={{ fontSize: '16px' }}>⭐ ตรง 1 ตัว</span>
-                      <span className="numbers-font" style={{ fontSize: '12px' }}>แม่นยำ 50%</span>
-                    </div>
-                  ) : (
-                    <div style={{ color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                      <span style={{ fontSize: '15px' }}>✕ ไม่ตรง</span>
-                      <span className="numbers-font" style={{ fontSize: '12px' }}>แม่นยำ 0%</span>
-                    </div>
-                  )}
+                {/* Validation Outcome Report */}
+                <div style={{ minWidth: '180px', textAlign: 'right' }}>
+                  <div style={{ color: hitColor, fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                    <span style={{ fontSize: '16px' }}>{hitText}</span>
+                    {digitMode === '3digit' && (
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 'normal', marginTop: '2px' }}>
+                        ตรงกลุ่มเด่น: {rep.matched?.length || 0} จาก 3 ตัว ({rep.matched?.join(', ') || 'ไม่มี'})
+                      </span>
+                    )}
+                  </div>
                 </div>
 
               </div>
@@ -299,11 +563,18 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
           })
         ) : (
           <div className="glass-card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-            🔍 ไม่พบข้อมูลสลากเพื่อเปรียบเทียบความตรงกันของรอบนี้
+            🔍 ไม่พบข้อมูลการเปรียบเทียบในโหมดนี้
           </div>
         )}
       </div>
 
+      <style jsx>{`
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 0.9; }
+          50% { transform: scale(1.05); opacity: 1; }
+          100% { transform: scale(1); opacity: 0.9; }
+        }
+      `}</style>
     </div>
   );
 }
