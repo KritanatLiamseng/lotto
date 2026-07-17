@@ -398,3 +398,85 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
+
+/* Mobile & Tablet Responsive Optimizations */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 20px;
+    padding-bottom: 24px;
+  }
+  
+  .header > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .logo-container {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .tabs-nav {
+    gap: 4px;
+    padding: 4px;
+    border-radius: 10px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .tabs-nav::-webkit-scrollbar {
+    display: none; /* Hide scrollbar in navigation tab bar */
+  }
+
+  .tab-btn {
+    padding: 8px 14px;
+    font-size: 14px;
+    border-radius: 8px;
+  }
+  
+  .lotto-table th {
+    padding: 12px 8px;
+    font-size: 13px;
+  }
+  
+  .lotto-table td {
+    padding: 14px 8px;
+    font-size: 13px;
+  }
+
+  .number-ball {
+    width: 36px;
+    height: 36px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 16px 10px;
+  }
+
+  .glass-card {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .search-bar {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .search-bar button {
+    width: 100%;
+    padding: 12px;
+  }
+  
+  .table-wrapper {
+    margin: 0 -16px;
+    padding: 0 16px;
+  }
+}
