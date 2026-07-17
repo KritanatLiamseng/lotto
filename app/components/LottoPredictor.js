@@ -39,7 +39,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
           accentBall: 'cyan-ball',
           accentText: '#00B0FF',
           borderLeft: '5px solid #00E5FF',
-          explanation: 'วิเคราะห์สถิติหวยลาวพัฒนา (ออกรางวัลสัปดาห์ละ 3 วัน จันทร์, พุธ, ศุกร์)'
+          explanation: 'วิเคราะห์สถิติหวยลาวพัฒนา (ออกรางวัลเป็นประจำทุกวัน เวลา 20:30 น.)'
         };
       case 'hanoi':
         return {
