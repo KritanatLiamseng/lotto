@@ -512,28 +512,30 @@ export const hanoiLottoHistory = [
   }
 ];
 
-// Helper to filter primary draws for calculations (Lao Development / Hanoi Normal)
-export function getPrimaryDrawsOnly(history = [], lottoType = 'thai') {
+// Helper to filter sub-draws for calculations based on active selection (e.g. Star, VIP, Special, Normal)
+export function getSubDrawsOnly(history = [], lottoType = 'thai', subKey = 'default') {
   const list = [];
   history.forEach(item => {
     if (lottoType === 'thai') {
       list.push(item);
     } else if (lottoType === 'lao') {
-      if (item.development) {
+      const key = subKey === 'default' ? 'development' : subKey;
+      if (item[key]) {
         list.push({
           date: item.date,
-          firstPrize: item.development.firstPrize,
-          twoDigitBack: item.development.twoDigitBack,
-          threeDigitBack: item.development.threeDigitBack
+          firstPrize: item[key].firstPrize,
+          twoDigitBack: item[key].twoDigitBack,
+          threeDigitBack: item[key].threeDigitBack
         });
       }
     } else if (lottoType === 'hanoi') {
-      if (item.normal) {
+      const key = subKey === 'default' ? 'normal' : subKey;
+      if (item[key]) {
         list.push({
           date: item.date,
-          firstPrize: item.normal.firstPrize,
-          twoDigitBack: item.normal.twoDigitBack,
-          threeDigitBack: item.normal.threeDigitBack
+          firstPrize: item[key].firstPrize,
+          twoDigitBack: item[key].twoDigitBack,
+          threeDigitBack: item[key].threeDigitBack
         });
       }
     }

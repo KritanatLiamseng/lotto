@@ -8,11 +8,12 @@ import FamousNumbers from './components/FamousNumbers';
 import AIPerformance from './components/AIPerformance';
 
 // Baseline data
-import { lottoHistory, laoLottoHistory, hanoiLottoHistory, getPrimaryDrawsOnly } from './data/lottoHistory';
+import { lottoHistory, laoLottoHistory, hanoiLottoHistory, getSubDrawsOnly } from './data/lottoHistory';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('predictor');
   const [activeLotto, setActiveLotto] = useState('thai'); // 'thai', 'lao', 'hanoi'
+  const [activeSubLotto, setActiveSubLotto] = useState('thai'); // 'thai', 'star', 'development', 'samakkee', 'special', 'normal', 'vip'
 
   // Manage databases in state for real-time reactivity
   const [databases, setDatabases] = useState({
@@ -344,8 +345,8 @@ export default function Home() {
   };
 
   const activeData = databases[activeLotto];
-  // Extract primary draws only for statistical predictions
-  const primaryDataForPredictor = getPrimaryDrawsOnly(activeData, activeLotto);
+  // Extract sub-draws based on selected active sub-lotto
+  const subDataForPredictor = getSubDrawsOnly(activeData, activeLotto, activeSubLotto);
 
   return (
     <div className="container" style={{
@@ -369,7 +370,12 @@ export default function Home() {
         ].map(item => (
           <button
             key={item.id}
-            onClick={() => setActiveLotto(item.id)}
+            onClick={() => {
+              setActiveLotto(item.id);
+              if (item.id === 'thai') setActiveSubLotto('thai');
+              else if (item.id === 'lao') setActiveSubLotto('development');
+              else if (item.id === 'hanoi') setActiveSubLotto('normal');
+            }}
             style={{
               background: activeLotto === item.id ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.01)',
               border: `1px solid ${
@@ -392,6 +398,69 @@ export default function Home() {
           </button>
         ))}
       </div>
+
+      {/* Sub-lotto Round Selector (for Lao & Hanoi) */}
+      {(activeLotto === 'lao' || activeLotto === 'hanoi') && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '8px',
+          margin: '-12px 0 24px 0',
+          flexWrap: 'wrap'
+        }}>
+          {activeLotto === 'lao' ? (
+            [
+              { id: 'star', label: '🟠 ลาวสตาร์ (15:45)' },
+              { id: 'development', label: '🟡 หวยลาวพัฒนา (20:30)' },
+              { id: 'samakkee', label: '🟣 ลาวสามัคคี (21:30)' }
+            ].map(sub => (
+              <button
+                key={sub.id}
+                onClick={() => setActiveSubLotto(sub.id)}
+                style={{
+                  background: activeSubLotto === sub.id ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.01)',
+                  border: `1px solid ${activeSubLotto === sub.id ? '#00E5FF' : 'var(--border-card)'}`,
+                  color: '#FFFFFF',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: activeSubLotto === sub.id ? 'bold' : 'normal',
+                  fontFamily: 'var(--font-sans)',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {sub.label}
+              </button>
+            ))
+          ) : (
+            [
+              { id: 'special', label: '🟠 ฮานอยพิเศษ (17:30)' },
+              { id: 'normal', label: '🔴 ฮานอยปกติ (18:30)' },
+              { id: 'vip', label: '🟣 ฮานอย VIP (19:30)' }
+            ].map(sub => (
+              <button
+                key={sub.id}
+                onClick={() => setActiveSubLotto(sub.id)}
+                style={{
+                  background: activeSubLotto === sub.id ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.01)',
+                  border: `1px solid ${activeSubLotto === sub.id ? '#FF007F' : 'var(--border-card)'}`,
+                  color: '#FFFFFF',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: activeSubLotto === sub.id ? 'bold' : 'normal',
+                  fontFamily: 'var(--font-sans)',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {sub.label}
+              </button>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Header Section */}
       <header className="header">
@@ -600,9 +669,9 @@ export default function Home() {
 
       {/* Main Dynamic Content Display */}
       <main style={{ minHeight: '500px', marginBottom: '40px' }}>
-        {activeTab === 'predictor' && <LottoPredictor lottoType={activeLotto} lottoData={primaryDataForPredictor} />}
+        {activeTab === 'predictor' && <LottoPredictor lottoType={activeLotto} lottoData={subDataForPredictor} />}
         {activeTab === 'history' && <LottoHistory lottoType={activeLotto} lottoData={activeData} />}
-        {activeTab === 'performance' && <AIPerformance lottoType={activeLotto} lottoData={activeData} />}
+        {activeTab === 'performance' && <AIPerformance lottoType={activeLotto} lottoData={activeData} activeSubLotto={activeSubLotto} />}
         {activeTab === 'generator' && <LuckyGenerator lottoType={activeLotto} />}
         {activeTab === 'famous' && <FamousNumbers lottoType={activeLotto} />}
       </main>

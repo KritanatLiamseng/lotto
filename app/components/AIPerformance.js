@@ -3,11 +3,24 @@
 import React, { useState, useEffect } from 'react';
 import { getPredictionStats } from '../data/lottoHistory';
 
-export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
+export default function AIPerformance({ lottoType = 'thai', lottoData = [], activeSubLotto = 'default' }) {
   const [digitMode, setDigitMode] = useState('2digit'); // '2digit', '3digit'
   const [performanceList, setPerformanceList] = useState([]);
   const [stats, setStats] = useState({ total: 0, fullHits: 0, partialHits: 0, accuracy: 0 });
-  const [activeSubFilter, setActiveSubFilter] = useState('all'); // 'all', 'dev'/'normal', 'star'/'special', 'samakkee'/'vip'
+  const [activeSubFilter, setActiveSubFilter] = useState('all');
+
+  // Synchronize local sub-filter with the globally selected sub-lotto round
+  useEffect(() => {
+    if (activeSubLotto === 'development' || activeSubLotto === 'normal' || activeSubLotto === 'thai') {
+      setActiveSubFilter('primary');
+    } else if (activeSubLotto === 'star' || activeSubLotto === 'special') {
+      setActiveSubFilter('secondary');
+    } else if (activeSubLotto === 'samakkee' || activeSubLotto === 'vip') {
+      setActiveSubFilter('vip');
+    } else {
+      setActiveSubFilter('all');
+    }
+  }, [activeSubLotto, lottoType]);
 
   useEffect(() => {
     const reports = [];
