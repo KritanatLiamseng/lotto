@@ -46,7 +46,7 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
       };
 
       if (digitMode === '2digit') {
-        // --- 2 DIGIT BACKTEST LOGIC (UPDATED TO PAIR MATCHING) ---
+        // --- 2 DIGIT BACKTEST ---
         if (lottoType === 'thai') {
           const recs = getTwoDigitRecs(topDigits, predictions);
           const actual = draw.twoDigitBack;
@@ -54,12 +54,10 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
           
           const reversedActual = actual.split("").reverse().join("");
 
-          // Check direct/reversed exact hits
           const isDirectHit = recs.includes(actual);
           const isReversedHit = recs.includes(reversedActual);
           const isExactHit = isDirectHit || isReversedHit;
 
-          // Check individual digit matches for partial rating
           const actD1 = parseInt(actual[0]);
           const actD2 = parseInt(actual[1]);
           const matchedDigits = [];
@@ -68,8 +66,11 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
 
           let accuracy = 0;
           if (isExactHit) accuracy = 100;
-          else if (matchedDigits.length === 2) accuracy = 75; // All digits correct but not in our 4 pairs
-          else if (matchedDigits.length === 1) accuracy = 50; // Matched 1 digit
+          else if (matchedDigits.length === 2) accuracy = 75;
+          else if (matchedDigits.length === 1) accuracy = 50;
+
+          // Full details template
+          const fullDetails = `รางวัลที่ 1: ${draw.firstPrize} | เลขท้าย 2 ตัว: ${draw.twoDigitBack} | เลขหน้า 3 ตัว: ${draw.threeDigitFront?.join(', ') || 'ไม่มี'} | เลขท้าย 3 ตัว: ${draw.threeDigitBack?.join(', ') || 'ไม่มี'}`;
 
           reports.push({
             date: draw.date,
@@ -82,7 +83,8 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
             accuracy,
             matchedDigits,
             exactHit: isExactHit,
-            hitType: isDirectHit ? 'direct' : isReversedHit ? 'reversed' : 'none'
+            hitType: isDirectHit ? 'direct' : isReversedHit ? 'reversed' : 'none',
+            fullDetails
           });
 
           totalEvaluated++;
@@ -130,6 +132,8 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
             else if (matchedDigits.length === 2) accuracy = 75;
             else if (matchedDigits.length === 1) accuracy = 50;
 
+            const fullDetails = `ผลรางวัลเต็ม: ${draw[sub.key].firstPrize} | เลขท้าย 3 ตัว: ${draw[sub.key].threeDigitBack} | เลขท้าย 2 ตัว: ${draw[sub.key].twoDigitBack}`;
+
             reports.push({
               date: draw.date,
               drawName: sub.name,
@@ -141,7 +145,8 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
               accuracy,
               matchedDigits,
               exactHit: isExactHit,
-              hitType: isDirectHit ? 'direct' : isReversedHit ? 'reversed' : 'none'
+              hitType: isDirectHit ? 'direct' : isReversedHit ? 'reversed' : 'none',
+              fullDetails
             });
 
             totalEvaluated++;
@@ -151,7 +156,7 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
           });
         }
       } else {
-        // --- 3 DIGIT BACKTEST LOGIC ---
+        // --- 3 DIGIT BACKTEST ---
         if (lottoType === 'thai') {
           const recs = getThreeDigitRecs(topDigits);
           const actualBacks = draw.threeDigitBack || [];
@@ -184,6 +189,8 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
             }
           });
 
+          const fullDetails = `รางวัลที่ 1: ${draw.firstPrize} | เลขท้าย 2 ตัว: ${draw.twoDigitBack} | เลขหน้า 3 ตัว: ${draw.threeDigitFront?.join(', ') || 'ไม่มี'} | เลขท้าย 3 ตัว: ${draw.threeDigitBack?.join(', ') || 'ไม่มี'}`;
+
           reports.push({
             date: draw.date,
             drawName: "หวยรัฐบาลไทย",
@@ -194,7 +201,8 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
             actualResult: displayWinningNum,
             accuracy: bestAccuracy,
             matchedDigits: bestMatchedDigits,
-            exactHit: exactHitMatch
+            exactHit: exactHitMatch,
+            fullDetails
           });
 
           totalEvaluated++;
@@ -237,6 +245,8 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
 
             const accuracy = Math.round((matched.length / 3) * 100);
 
+            const fullDetails = `ผลรางวัลเต็ม: ${draw[sub.key].firstPrize} | เลขท้าย 3 ตัว: ${draw[sub.key].threeDigitBack} | เลขท้าย 2 ตัว: ${draw[sub.key].twoDigitBack}`;
+
             reports.push({
               date: draw.date,
               drawName: sub.name,
@@ -247,7 +257,8 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
               actualResult: actual,
               accuracy,
               matchedDigits: matched,
-              exactHit: isExact
+              exactHit: isExact,
+              fullDetails
             });
 
             totalEvaluated++;
@@ -473,13 +484,14 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
                 gap: '16px',
                 transition: 'all 0.3s ease'
               }}>
-                {/* Draw Info */}
-                <div>
+                {/* Draw Info & Full Winning Output */}
+                <div style={{ flex: '1 1 250px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontWeight: 'bold', color: '#FFF', fontSize: '16px' }}>{rep.date}</span>
                     <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>⏰ {rep.time}</span>
                   </div>
-                  <div style={{ marginTop: '6px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  
+                  <div style={{ marginTop: '4px', display: 'flex', gap: '6px', alignItems: 'center' }}>
                     <span style={{
                       color: rep.lottoKey === 'development' || rep.lottoKey === 'normal' || rep.lottoKey === 'thai' ? 'var(--gold)' : rep.lottoKey === 'star' || rep.lottoKey === 'special' ? '#FF8C00' : '#FF00FF',
                       fontSize: '13px',
@@ -501,10 +513,24 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
                       </span>
                     )}
                   </div>
+
+                  {/* Expanded Full Results details box */}
+                  <div style={{ 
+                    marginTop: '10px', 
+                    fontSize: '12px', 
+                    color: '#FFF', 
+                    background: 'rgba(255,255,255,0.02)', 
+                    padding: '8px 12px', 
+                    borderRadius: '8px', 
+                    border: '1px solid rgba(255,255,255,0.04)',
+                    lineHeight: '1.4'
+                  }}>
+                    📋 <strong>ผลรางวัลที่ออก:</strong> {rep.fullDetails}
+                  </div>
                 </div>
 
                 {/* AI Predictions vs Actual Results */}
-                <div style={{ display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
                   {/* AI Predictions */}
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
@@ -570,7 +596,7 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [] }) {
                 </div>
 
                 {/* Validation Outcome Report */}
-                <div style={{ minWidth: '200px', textAlign: 'right' }}>
+                <div style={{ minWidth: '180px', textAlign: 'right' }}>
                   <div style={{ color: hitColor, fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                     <span style={{ fontSize: '16px' }}>{hitText}</span>
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 'normal', marginTop: '2px' }}>
