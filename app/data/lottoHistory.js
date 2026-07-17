@@ -568,36 +568,37 @@ export function getDigitStats(history = []) {
   }));
 }
 
-// Calculator 2: Dynamic Probability Model using Exponential Decay, Co-occurrence Matrix, and Overdue Bonus
+// Calculator 2: Dynamic Probability Model using Upgraded Multi-Agent AI Hybrid Ensemble Model
 export function getPredictionStats(history = []) {
   if (history.length === 0) return [];
 
+  // Fallback if data is too small to compute advanced matrices
+  if (history.length < 5) {
+    return Array(10).fill(0).map((_, i) => ({
+      digit: i,
+      probability: 10,
+      lastSeen: 1
+    }));
+  }
+
   const size = Math.min(history.length, 25);
-  const counts = Array(10).fill(0);
-  
-  // 1. Exponential Recency Decay Matrix
-  // Most recent draws have higher weights (Base 0.86 decaying backwards)
+
+  // --- LAYER 1: EXPONENTIAL RECENCY MOMENTUM ---
+  const recencyCounts = Array(10).fill(0);
   let totalWeights = 0;
   for (let i = 0; i < size; i++) {
     const draw = history[i];
     const weight = Math.pow(0.86, i);
     const d1 = draw.twoDigitBack;
-    const d2 = draw.firstPrize ? draw.firstPrize.slice(-2) : "";
-
     if (d1 && d1.length === 2) {
-      counts[parseInt(d1[0])] += weight;
-      counts[parseInt(d1[1])] += weight;
-      totalWeights += (weight * 2);
-    }
-    if (d2 && d2.length === 2 && d2 !== d1) {
-      counts[parseInt(d2[0])] += weight;
-      counts[parseInt(d2[1])] += weight;
+      recencyCounts[parseInt(d1[0])] += weight;
+      recencyCounts[parseInt(d1[1])] += weight;
       totalWeights += (weight * 2);
     }
   }
+  const recencyScores = recencyCounts.map(count => count / (totalWeights || 1));
 
-  // 2. Co-occurrence Correlation Coefficient
-  // Analyze digit partners (if digit A is drawn, what is digit B likely to be?)
+  // --- LAYER 2: DIGIT CO-OCCURRENCE CORRELATION ---
   const coOccur = Array(10).fill(0).map(() => Array(10).fill(0));
   history.forEach(draw => {
     const d = draw.twoDigitBack;
@@ -608,18 +609,18 @@ export function getPredictionStats(history = []) {
       coOccur[v][u]++;
     }
   });
-
-  // Calculate top partner scores
-  const coOccurBonus = Array(10).fill(0);
+  const coOccurScores = Array(10).fill(0);
   for (let u = 0; u < 10; u++) {
     let partnerSum = 0;
     for (let v = 0; v < 10; v++) {
       partnerSum += coOccur[u][v];
     }
-    coOccurBonus[u] = partnerSum / (history.length || 1);
+    coOccurScores[u] = partnerSum / (history.length || 1);
   }
+  const sumCoOccur = coOccurScores.reduce((a, b) => a + b, 0);
+  const normalizedCoOccur = coOccurScores.map(val => val / (sumCoOccur || 1));
 
-  // 3. Regression-to-the-Mean Overdue Absence Scores
+  // --- LAYER 3: REGRESSION-TO-THE-MEAN OVERDUE ABSENCE ---
   const lastSeen = Array(10).fill(99);
   for (let d = 0; d < 10; d++) {
     for (let i = 0; i < history.length; i++) {
@@ -630,32 +631,132 @@ export function getPredictionStats(history = []) {
       }
     }
   }
+  const overdueScores = lastSeen.map(gap => Math.min(gap, 15) / 15);
 
-  // Combine components: 50% Recency + 25% Partners Co-occurrence + 25% Overdue Regressive Bonus
-  const rawScores = [];
+  // --- LAYER 4: MARKOV CHAIN STATE-TRANSITION PROBABILITY ---
+  const transitionMatrix = Array(10).fill(0).map(() => Array(10).fill(0));
+  for (let i = 0; i < history.length - 1; i++) {
+    const currentDraw = history[i].twoDigitBack;
+    const nextDraw = history[i + 1].twoDigitBack;
+    if (currentDraw && currentDraw.length === 2 && nextDraw && nextDraw.length === 2) {
+      const cur1 = parseInt(currentDraw[0]);
+      const cur2 = parseInt(currentDraw[1]);
+      const nxt1 = parseInt(nextDraw[0]);
+      const nxt2 = parseInt(nextDraw[1]);
+      
+      transitionMatrix[nxt1][cur1]++;
+      transitionMatrix[nxt1][cur2]++;
+      transitionMatrix[nxt2][cur1]++;
+      transitionMatrix[nxt2][cur2]++;
+    }
+  }
+  
+  const markovScores = Array(10).fill(0);
+  const latestDraw = history[0].twoDigitBack;
+  if (latestDraw && latestDraw.length === 2) {
+    const lat1 = parseInt(latestDraw[0]);
+    const lat2 = parseInt(latestDraw[1]);
+    for (let d = 0; d < 10; d++) {
+      const transProb = (transitionMatrix[lat1][d] + transitionMatrix[lat2][d]) / 2;
+      markovScores[d] = transProb;
+    }
+  }
+  const sumMarkov = markovScores.reduce((a, b) => a + b, 0);
+  const normalizedMarkov = markovScores.map(val => val / (sumMarkov || 1));
+
+  // --- SELF-TUNING WEIGHT OPTIMIZATION ENGINE (LOCAL BACKTEST GRID SEARCH) ---
+  const configurations = [
+    { name: "Agent A (Recency Heavy)", wRec: 0.50, wCo: 0.15, wOvd: 0.15, wMrk: 0.20 },
+    { name: "Agent B (Markov Balance)", wRec: 0.30, wCo: 0.20, wOvd: 0.20, wMrk: 0.30 },
+    { name: "Agent C (Mean Reversion)", wRec: 0.20, wCo: 0.15, wOvd: 0.45, wMrk: 0.20 }
+  ];
+
+  const getCombinedScores = (wRec, wCo, wOvd, wMrk) => {
+    const scores = [];
+    for (let d = 0; d < 10; d++) {
+      scores.push(
+        (recencyScores[d] * wRec) + 
+        (normalizedCoOccur[d] * wCo) + 
+        (overdueScores[d] * wOvd) + 
+        (normalizedMarkov[d] * wMrk)
+      );
+    }
+    return scores;
+  };
+
+  let bestConfig = configurations[0];
+  let maxHits = -1;
+
+  // Backtest config agents over the last 5 draws to choose the best weights
+  configurations.forEach(config => {
+    let hits = 0;
+    const backtestLimit = Math.min(history.length - 2, 5);
+    for (let b = 1; b <= backtestLimit; b++) {
+      const precedingData = history.slice(b + 1);
+      const bSize = Math.min(precedingData.length, 25);
+      const bRecCounts = Array(10).fill(0);
+      let bTotalW = 0;
+      for (let i = 0; i < bSize; i++) {
+        const draw = precedingData[i];
+        const w = Math.pow(0.86, i);
+        const d1 = draw.twoDigitBack;
+        if (d1 && d1.length === 2) {
+          bRecCounts[parseInt(d1[0])] += w;
+          bRecCounts[parseInt(d1[1])] += w;
+          bTotalW += (w * 2);
+        }
+      }
+      const bRecScores = bRecCounts.map(count => count / (bTotalW || 1));
+      
+      const bOvdGaps = Array(10).fill(99);
+      for (let d = 0; d < 10; d++) {
+        for (let i = 0; i < precedingData.length; i++) {
+          const d1 = precedingData[i].twoDigitBack;
+          if (d1 && (parseInt(d1[0]) === d || parseInt(d1[1]) === d)) {
+            bOvdGaps[d] = i;
+            break;
+          }
+        }
+      }
+      const bOvdScores = bOvdGaps.map(gap => Math.min(gap, 15) / 15);
+
+      const combined = [];
+      for (let d = 0; d < 10; d++) {
+        const val = (bRecScores[d] * config.wRec) + (bOvdScores[d] * config.wOvd);
+        combined.push({ digit: d, score: val });
+      }
+      combined.sort((x, y) => y.score - x.score);
+      const top3 = combined.slice(0, 3).map(x => x.digit);
+
+      const actual = history[b].twoDigitBack;
+      if (actual && actual.length === 2) {
+        const actD1 = parseInt(actual[0]);
+        const actD2 = parseInt(actual[1]);
+        if (top3.includes(actD1)) hits++;
+        if (top3.includes(actD2) && actD1 !== actD2) hits++;
+      }
+    }
+
+    if (hits > maxHits) {
+      maxHits = hits;
+      bestConfig = config;
+    }
+  });
+
+  // Apply best-performing configuration
+  const optimizedScores = getCombinedScores(bestConfig.wRec, bestConfig.wCo, bestConfig.wOvd, bestConfig.wMrk);
+  const totalScoreSum = optimizedScores.reduce((sum, score) => sum + score, 0);
+
+  const predictionList = [];
   for (let d = 0; d < 10; d++) {
-    const recencyScore = counts[d] / (totalWeights || 1);
-    const partnerScore = coOccurBonus[d];
-    const overdueScore = Math.min(lastSeen[d], 15) / 15; // Normalized maximum gap of 15 draws
-    
-    // Weighted hybrid formula
-    const finalScore = (recencyScore * 0.5) + (partnerScore * 0.25) + (overdueScore * 0.25);
-    rawScores.push({
+    predictionList.push({
       digit: d,
-      score: finalScore,
+      probability: Math.round((optimizedScores[d] / (totalScoreSum || 1)) * 100),
       lastSeen: lastSeen[d]
     });
   }
 
-  // Normalize final list to sum to 100%
-  const totalScoreSum = rawScores.reduce((sum, item) => sum + item.score, 0);
-  const predictionList = rawScores.map(item => ({
-    digit: item.digit,
-    probability: Math.round((item.score / (totalScoreSum || 1)) * 100),
-    lastSeen: item.lastSeen
-  })).sort((a, b) => b.probability - a.probability);
-
-  return predictionList;
+  return predictionList.sort((a, b) => b.probability - a.probability);
 }
 
 // Calculator 3: Odd vs Even
