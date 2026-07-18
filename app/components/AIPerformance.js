@@ -313,7 +313,7 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [], acti
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         {[
           { id: 'all', label: '⚡ ทุกรอบย่อย' },
-          { id: 'primary', label: lottoType === 'lao' ? '🟡 หวยลาวพัฒนา (จ.-ศ. 20:30)' : '🟡 ฮานอยปกติ (ทุกวัน 18:30)' },
+          { id: 'primary', label: lottoType === 'lao' ? '🟡 หวยลาวพัฒนา (ทุกวัน 20:30)' : '🟡 ฮานอยปกติ (ทุกวัน 18:30)' },
           { id: 'secondary', label: lottoType === 'lao' ? '🟠 ลาวสตาร์ (ทุกวัน 15:45)' : '🟠 ฮานอยพิเศษ (ทุกวัน 17:15)' },
           { id: 'vip', label: lottoType === 'lao' ? '🟣 ลาวสามัคคี (อ.,พ.,ศ.,ส.,อา. 21:30)' : '🟣 ฮานอย VIP (ทุกวัน 19:15)' }
         ].map(btn => (
