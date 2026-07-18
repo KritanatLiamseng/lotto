@@ -582,7 +582,7 @@ export function getDigitStats(history = []) {
   }));
 }
 
-// Calculator 2: Dynamic Probability Model using Upgraded Multi-Agent AI Hybrid Ensemble Model
+// Calculator 2: Dynamic Probability Model using Upgraded Multi-Agent AI Hybrid Ensemble Model v2
 export function getPredictionStats(history = []) {
   if (history.length === 0) return [];
 
@@ -678,21 +678,68 @@ export function getPredictionStats(history = []) {
   const sumMarkov = markovScores.reduce((a, b) => a + b, 0);
   const normalizedMarkov = markovScores.map(val => val / (sumMarkov || 1));
 
-  // --- SELF-TUNING WEIGHT OPTIMIZATION ENGINE (LOCAL BACKTEST GRID SEARCH) ---
+  // --- LAYER 5: POSITIONAL AUTOCORRELATION (TENS vs ONES PLACE) ---
+  const tensCounts = Array(10).fill(0);
+  const onesCounts = Array(10).fill(0);
+  const posLimit = Math.min(history.length, 15);
+  for (let i = 0; i < posLimit; i++) {
+    const d = history[i].twoDigitBack;
+    if (d && d.length === 2) {
+      const w = Math.pow(0.90, i);
+      tensCounts[parseInt(d[0])] += w;
+      onesCounts[parseInt(d[1])] += w;
+    }
+  }
+  const positionalScores = Array(10).fill(0);
+  for (let d = 0; d < 10; d++) {
+    positionalScores[d] = (tensCounts[d] + onesCounts[d]) / 2;
+  }
+  const sumPos = positionalScores.reduce((a, b) => a + b, 0);
+  const normalizedPositional = positionalScores.map(val => val / (sumPos || 1));
+
+  // --- LAYER 6: ARITHMETIC DIGIT-SUM DISTRIBUTION ---
+  const sumCounts = Array(19).fill(0);
+  let sumWeights = 0;
+  for (let i = 0; i < posLimit; i++) {
+    const d = history[i].twoDigitBack;
+    if (d && d.length === 2) {
+      const w = Math.pow(0.90, i);
+      const digitSum = parseInt(d[0]) + parseInt(d[1]);
+      sumCounts[digitSum] += w;
+      sumWeights += w;
+    }
+  }
+  const sumProbabilities = sumCounts.map(count => count / (sumWeights || 1));
+  const arithmeticScores = Array(10).fill(0);
+  for (let d = 0; d < 10; d++) {
+    let scoreSum = 0;
+    for (let other = 0; other < 10; other++) {
+      scoreSum += sumProbabilities[d + other];
+    }
+    arithmeticScores[d] = scoreSum / 10;
+  }
+  const sumArith = arithmeticScores.reduce((a, b) => a + b, 0);
+  const normalizedArithmetic = arithmeticScores.map(val => val / (sumArith || 1));
+
+  // --- SELF-TUNING WEIGHT OPTIMIZATION ENGINE (LOCAL BACKTEST GRID SEARCH v2) ---
   const configurations = [
-    { name: "Agent A (Recency Heavy)", wRec: 0.50, wCo: 0.15, wOvd: 0.15, wMrk: 0.20 },
-    { name: "Agent B (Markov Balance)", wRec: 0.30, wCo: 0.20, wOvd: 0.20, wMrk: 0.30 },
-    { name: "Agent C (Mean Reversion)", wRec: 0.20, wCo: 0.15, wOvd: 0.45, wMrk: 0.20 }
+    { name: "Agent A (Recency Heavy)", wRec: 0.40, wCo: 0.10, wOvd: 0.10, wMrk: 0.15, wPos: 0.15, wAr: 0.10 },
+    { name: "Agent B (Markov Heavy)", wRec: 0.20, wCo: 0.10, wOvd: 0.10, wMrk: 0.40, wPos: 0.10, wAr: 0.10 },
+    { name: "Agent C (Mean Reversion Heavy)", wRec: 0.15, wCo: 0.10, wOvd: 0.45, wMrk: 0.10, wPos: 0.10, wAr: 0.10 },
+    { name: "Agent D (Positional Heavy)", wRec: 0.20, wCo: 0.10, wOvd: 0.10, wMrk: 0.10, wPos: 0.40, wAr: 0.10 },
+    { name: "Agent E (Arithmetic Sum Heavy)", wRec: 0.15, wCo: 0.10, wOvd: 0.10, wMrk: 0.10, wPos: 0.15, wAr: 0.40 }
   ];
 
-  const getCombinedScores = (wRec, wCo, wOvd, wMrk) => {
+  const getCombinedScores = (c) => {
     const scores = [];
     for (let d = 0; d < 10; d++) {
       scores.push(
-        (recencyScores[d] * wRec) + 
-        (normalizedCoOccur[d] * wCo) + 
-        (overdueScores[d] * wOvd) + 
-        (normalizedMarkov[d] * wMrk)
+        (recencyScores[d] * c.wRec) + 
+        (normalizedCoOccur[d] * c.wCo) + 
+        (overdueScores[d] * c.wOvd) + 
+        (normalizedMarkov[d] * c.wMrk) +
+        (normalizedPositional[d] * c.wPos) +
+        (normalizedArithmetic[d] * c.wAr)
       );
     }
     return scores;
@@ -701,12 +748,14 @@ export function getPredictionStats(history = []) {
   let bestConfig = configurations[0];
   let maxHits = -1;
 
-  // Backtest config agents over the last 5 draws to choose the best weights
+  // Backtest config agents over the last 8 draws to choose the best weights
   configurations.forEach(config => {
     let hits = 0;
-    const backtestLimit = Math.min(history.length - 2, 5);
+    const backtestLimit = Math.min(history.length - 2, 8);
     for (let b = 1; b <= backtestLimit; b++) {
       const precedingData = history.slice(b + 1);
+      if (precedingData.length < 3) continue;
+
       const bSize = Math.min(precedingData.length, 25);
       const bRecCounts = Array(10).fill(0);
       let bTotalW = 0;
@@ -758,7 +807,7 @@ export function getPredictionStats(history = []) {
   });
 
   // Apply best-performing configuration
-  const optimizedScores = getCombinedScores(bestConfig.wRec, bestConfig.wCo, bestConfig.wOvd, bestConfig.wMrk);
+  const optimizedScores = getCombinedScores(bestConfig);
   const totalScoreSum = optimizedScores.reduce((sum, score) => sum + score, 0);
 
   const predictionList = [];
