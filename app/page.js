@@ -28,10 +28,34 @@ export default function Home() {
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [notification, setNotification] = useState('');
 
-  // Automated Real-Time Live Sync Engine
+  // Load persisted database on mount
   React.useEffect(() => {
+    try {
+      const persisted = localStorage.getItem('lottooracle_db');
+      if (persisted) {
+        const parsed = JSON.parse(persisted);
+        if (parsed.thai && parsed.lao && parsed.hanoi) {
+          setDatabases(parsed);
+        }
+      }
+    } catch (e) {
+      console.log("Failed to load persisted database", e);
+    }
+    
+    // Run automated live-check
     runAutoLiveSync();
   }, []);
+
+  // Save database updates to LocalStorage for persistence
+  React.useEffect(() => {
+    if (databases.thai !== lottoHistory || databases.lao !== laoLottoHistory || databases.hanoi !== hanoiLottoHistory) {
+      try {
+        localStorage.setItem('lottooracle_db', JSON.stringify(databases));
+      } catch (e) {
+        console.log("Failed to persist database", e);
+      }
+    }
+  }, [databases]);
 
   const generateRandomLottoDigits = (len) => {
     let res = '';
