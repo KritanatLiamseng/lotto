@@ -96,113 +96,154 @@ export default function Home() {
       console.log("Thai API sync bypassed or failed, using local database");
     }
 
-    // 2. Local clock check for Lao and Hanoi daily draws
+    // 2. Local clock check and backfilling for Lao and Hanoi daily draws
     const now = new Date();
-    const thaiYear = now.getFullYear() + 543;
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTimeVal = currentHour * 60 + currentMinute; // minutes since midnight
+
     const monthsThai = [
       "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
       "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
     ];
-    const todayDateStr = `${now.getDate()} ${monthsThai[now.getMonth()]} ${thaiYear}`;
-
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTimeVal = currentHour * 60 + currentMinute; // minutes since midnight
 
     setDatabases(prev => {
       let updated = false;
       const nextDbs = { ...prev };
 
-      // LAO CHECK (Star 15:45 = 945m, Dev 20:30 = 1230m, Samakkee 21:30 = 1290m)
-      if (currentTimeVal >= 945) {
-        const currentLaoList = [...nextDbs.lao];
-        const hasTodayLao = currentLaoList.some(d => d.date === todayDateStr);
+      // Helper to parse Thai date strings back to JavaScript Date objects
+      const parseThaiDate = (dateStr) => {
+        if (!dateStr) return null;
+        const parts = dateStr.trim().split(/\s+/);
+        if (parts.length !== 3) return null;
+        const day = parseInt(parts[0]);
+        const monthThai = parts[1];
+        const yearThai = parseInt(parts[2]);
+        
+        const monthIdx = monthsThai.indexOf(monthThai);
+        if (monthIdx === -1) return null;
+        
+        const yearEng = yearThai - 543;
+        return new Date(yearEng, monthIdx, day);
+      };
 
-        if (!hasTodayLao) {
-          const newLaoEntry = { date: todayDateStr };
-          
-          const starVal = generateRandomLottoDigits(4);
-          newLaoEntry.star = { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: starVal, twoDigitBack: starVal.slice(-2), threeDigitBack: starVal.slice(-3) };
+      const backfillList = (currentList, isLao) => {
+        if (currentList.length === 0) return { list: currentList, changed: false };
+        const latestDateStr = currentList[0].date;
+        const latestDate = parseThaiDate(latestDateStr);
+        if (!latestDate) return { list: currentList, changed: false };
 
-          if (currentTimeVal >= 1230) {
-            const devVal = generateRandomLottoDigits(4);
-            newLaoEntry.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: devVal, twoDigitBack: devVal.slice(-2), threeDigitBack: devVal.slice(-3) };
-          }
-          if (currentTimeVal >= 1290) {
-            const samVal = generateRandomLottoDigits(4);
-            newLaoEntry.samakkee = { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: samVal, twoDigitBack: samVal.slice(-2), threeDigitBack: samVal.slice(-3) };
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let tempDate = new Date(latestDate);
+        tempDate.setHours(0, 0, 0, 0);
+        tempDate.setDate(tempDate.getDate() + 1);
+
+        const newEntries = [];
+        let listChanged = false;
+
+        while (tempDate <= today) {
+          const isToday = tempDate.toDateString() === today.toDateString();
+          const tDay = tempDate.getDate();
+          const tMonth = monthsThai[tempDate.getMonth()];
+          const tYear = tempDate.getFullYear() + 543;
+          const formattedDate = `${tDay} ${tMonth} ${tYear}`;
+
+          if (!isToday) {
+            // Past day: backfill all rounds for this day
+            const newEntry = { date: formattedDate };
+            if (isLao) {
+              const starVal = generateRandomLottoDigits(4);
+              const devVal = generateRandomLottoDigits(4);
+              const samVal = generateRandomLottoDigits(4);
+              newEntry.star = { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: starVal, twoDigitBack: starVal.slice(-2), threeDigitBack: starVal.slice(-3) };
+              newEntry.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: devVal, twoDigitBack: devVal.slice(-2), threeDigitBack: devVal.slice(-3) };
+              newEntry.samakkee = { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: samVal, twoDigitBack: samVal.slice(-2), threeDigitBack: samVal.slice(-3) };
+            } else {
+              const specVal = generateRandomLottoDigits(5);
+              const normVal = generateRandomLottoDigits(5);
+              const vipVal = generateRandomLottoDigits(5);
+              newEntry.special = { name: "ฮานอยพิเศษ", time: "17:30 น.", firstPrize: specVal, twoDigitBack: specVal.slice(-2), threeDigitBack: specVal.slice(-3) };
+              newEntry.normal = { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: normVal, twoDigitBack: normVal.slice(-2), threeDigitBack: normVal.slice(-3) };
+              newEntry.vip = { name: "ฮานอย VIP", time: "19:30 น.", firstPrize: vipVal, twoDigitBack: vipVal.slice(-2), threeDigitBack: vipVal.slice(-3) };
+            }
+            newEntries.unshift(newEntry);
+            listChanged = true;
+          } else {
+            // Today: only add draws that have already passed their drawing time
+            let todayEntry = currentList.find(d => d.date === formattedDate);
+            let createdToday = false;
+            if (!todayEntry) {
+              todayEntry = { date: formattedDate };
+              createdToday = true;
+            }
+
+            let todayUpdated = false;
+            if (isLao) {
+              if (currentTimeVal >= 945 && !todayEntry.star) { // Past 15:45
+                const starVal = generateRandomLottoDigits(4);
+                todayEntry.star = { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: starVal, twoDigitBack: starVal.slice(-2), threeDigitBack: starVal.slice(-3) };
+                todayUpdated = true;
+              }
+              if (currentTimeVal >= 1230 && !todayEntry.development) { // Past 20:30
+                const devVal = generateRandomLottoDigits(4);
+                todayEntry.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: devVal, twoDigitBack: devVal.slice(-2), threeDigitBack: devVal.slice(-3) };
+                todayUpdated = true;
+              }
+              if (currentTimeVal >= 1290 && !todayEntry.samakkee) { // Past 21:30
+                const samVal = generateRandomLottoDigits(4);
+                todayEntry.samakkee = { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: samVal, twoDigitBack: samVal.slice(-2), threeDigitBack: samVal.slice(-3) };
+                todayUpdated = true;
+              }
+            } else {
+              if (currentTimeVal >= 1050 && !todayEntry.special) { // Past 17:30
+                const specVal = generateRandomLottoDigits(5);
+                todayEntry.special = { name: "ฮานอยพิเศษ", time: "17:30 น.", firstPrize: specVal, twoDigitBack: specVal.slice(-2), threeDigitBack: specVal.slice(-3) };
+                todayUpdated = true;
+              }
+              if (currentTimeVal >= 1110 && !todayEntry.normal) { // Past 18:30
+                const normVal = generateRandomLottoDigits(5);
+                todayEntry.normal = { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: normVal, twoDigitBack: normVal.slice(-2), threeDigitBack: normVal.slice(-3) };
+                todayUpdated = true;
+              }
+              if (currentTimeVal >= 1170 && !todayEntry.vip) { // Past 19:30
+                const vipVal = generateRandomLottoDigits(5);
+                todayEntry.vip = { name: "ฮานอย VIP", time: "19:30 น.", firstPrize: vipVal, twoDigitBack: vipVal.slice(-2), threeDigitBack: vipVal.slice(-3) };
+                todayUpdated = true;
+              }
+            }
+
+            if (todayUpdated) {
+              if (createdToday) {
+                newEntries.unshift(todayEntry);
+              } else {
+                const idx = currentList.findIndex(d => d.date === formattedDate);
+                currentList[idx] = todayEntry;
+              }
+              listChanged = true;
+            }
           }
 
-          nextDbs.lao = [newLaoEntry, ...currentLaoList];
-          updated = true;
-        } else {
-          const todayIdx = currentLaoList.findIndex(d => d.date === todayDateStr);
-          const todayLao = { ...currentLaoList[todayIdx] };
-          let todayUpdated = false;
-
-          if (currentTimeVal >= 1230 && !todayLao.development) {
-            const devVal = generateRandomLottoDigits(4);
-            todayLao.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: devVal, twoDigitBack: devVal.slice(-2), threeDigitBack: devVal.slice(-3) };
-            todayUpdated = true;
-          }
-          if (currentTimeVal >= 1290 && !todayLao.samakkee) {
-            const samVal = generateRandomLottoDigits(4);
-            todayLao.samakkee = { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: samVal, twoDigitBack: samVal.slice(-2), threeDigitBack: samVal.slice(-3) };
-            todayUpdated = true;
-          }
-
-          if (todayUpdated) {
-            currentLaoList[todayIdx] = todayLao;
-            nextDbs.lao = currentLaoList;
-            updated = true;
-          }
+          tempDate.setDate(tempDate.getDate() + 1);
         }
+
+        if (listChanged) {
+          return { list: [...newEntries, ...currentList], changed: true };
+        }
+        return { list: currentList, changed: false };
+      };
+
+      const laoRes = backfillList([...nextDbs.lao], true);
+      if (laoRes.changed) {
+        nextDbs.lao = laoRes.list;
+        updated = true;
       }
 
-      // HANOI CHECK (Special 17:30 = 1050m, Normal 18:30 = 1110m, VIP 19:30 = 1170m)
-      if (currentTimeVal >= 1050) {
-        const currentHanoiList = [...nextDbs.hanoi];
-        const hasTodayHanoi = currentHanoiList.some(d => d.date === todayDateStr);
-
-        if (!hasTodayHanoi) {
-          const newHanoiEntry = { date: todayDateStr };
-          
-          const specVal = generateRandomLottoDigits(5);
-          newHanoiEntry.special = { name: "ฮานอยพิเศษ", time: "17:30 น.", firstPrize: specVal, twoDigitBack: specVal.slice(-2), threeDigitBack: specVal.slice(-3) };
-
-          if (currentTimeVal >= 1110) {
-            const normVal = generateRandomLottoDigits(5);
-            newHanoiEntry.normal = { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: normVal, twoDigitBack: normVal.slice(-2), threeDigitBack: normVal.slice(-3) };
-          }
-          if (currentTimeVal >= 1170) {
-            const vipVal = generateRandomLottoDigits(5);
-            newHanoiEntry.vip = { name: "ฮานอย VIP", time: "19:30 น.", firstPrize: vipVal, twoDigitBack: vipVal.slice(-2), threeDigitBack: vipVal.slice(-3) };
-          }
-
-          nextDbs.hanoi = [newHanoiEntry, ...currentHanoiList];
-          updated = true;
-        } else {
-          const todayIdx = currentHanoiList.findIndex(d => d.date === todayDateStr);
-          const todayHanoi = { ...currentHanoiList[todayIdx] };
-          let todayUpdated = false;
-
-          if (currentTimeVal >= 1110 && !todayHanoi.normal) {
-            const normVal = generateRandomLottoDigits(5);
-            todayHanoi.normal = { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: normVal, twoDigitBack: normVal.slice(-2), threeDigitBack: normVal.slice(-3) };
-            todayUpdated = true;
-          }
-          if (currentTimeVal >= 1170 && !todayHanoi.vip) {
-            const vipVal = generateRandomLottoDigits(5);
-            todayHanoi.vip = { name: "ฮานอย VIP", time: "19:30 น.", firstPrize: vipVal, twoDigitBack: vipVal.slice(-2), threeDigitBack: vipVal.slice(-3) };
-            todayUpdated = true;
-          }
-
-          if (todayUpdated) {
-            currentHanoiList[todayIdx] = todayHanoi;
-            nextDbs.hanoi = currentHanoiList;
-            updated = true;
-          }
-        }
+      const hanoiRes = backfillList([...nextDbs.hanoi], false);
+      if (hanoiRes.changed) {
+        nextDbs.hanoi = hanoiRes.list;
+        updated = true;
       }
 
       if (updated) {
