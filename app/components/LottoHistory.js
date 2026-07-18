@@ -3,11 +3,67 @@
 import React, { useState, useEffect } from 'react';
 import { backtestDraw, getPredictionStats } from '../data/lottoHistory';
 
-export default function LottoHistory({ lottoType = 'thai', lottoData = [] }) {
+export default function LottoHistory({ lottoType = 'thai', lottoData = [], onUpdateDraw }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedYear, setSelectedYear] = useState('ทั้งหมด');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = lottoType === 'thai' ? 8 : 4; // Nested draws take more vertical space
+
+  const [editingDraw, setEditingDraw] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
+
+  const handleStartEdit = (draw) => {
+    setEditingDraw(draw);
+    if (lottoType === 'thai') {
+      setEditFormData({
+        firstPrize: draw.firstPrize || '',
+        twoDigitBack: draw.twoDigitBack || '',
+        threeDigitFront1: draw.threeDigitFront?.[0] || '',
+        threeDigitFront2: draw.threeDigitFront?.[1] || '',
+        threeDigitBack1: draw.threeDigitBack?.[0] || '',
+        threeDigitBack2: draw.threeDigitBack?.[1] || ''
+      });
+    } else {
+      const rounds = {};
+      const keys = lottoType === 'lao' ? ['star', 'development', 'samakkee'] : ['special', 'normal', 'vip'];
+      keys.forEach(k => {
+        if (draw[k]) {
+          rounds[k] = draw[k].firstPrize || '';
+        }
+      });
+      setEditFormData(rounds);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    let updatedData = {};
+    if (lottoType === 'thai') {
+      updatedData = {
+        firstPrize: editFormData.firstPrize,
+        twoDigitBack: editFormData.twoDigitBack,
+        threeDigitFront: [editFormData.threeDigitFront1, editFormData.threeDigitFront2].filter(Boolean),
+        threeDigitBack: [editFormData.threeDigitBack1, editFormData.threeDigitBack2].filter(Boolean)
+      };
+    } else {
+      const keys = lottoType === 'lao' ? ['star', 'development', 'samakkee'] : ['special', 'normal', 'vip'];
+      keys.forEach(k => {
+        if (editingDraw[k]) {
+          const val = editFormData[k] || '';
+          updatedData[k] = {
+            ...editingDraw[k],
+            firstPrize: val,
+            threeDigitBack: val.slice(-3),
+            twoDigitBack: val.slice(-2)
+          };
+        }
+      });
+    }
+    
+    if (onUpdateDraw) {
+      onUpdateDraw(editingDraw.date, updatedData);
+    }
+    setEditingDraw(null);
+  };
 
   // Reset filter selections when lottoType changes
   useEffect(() => {
@@ -258,7 +314,18 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [] }) {
 
                   return (
                     <tr key={index}>
-                      <td style={{ fontWeight: '500', minWidth: '150px' }}>{draw.date}</td>
+                      <td style={{ fontWeight: '500', minWidth: '150px' }}>
+                        {draw.date}
+                        {onUpdateDraw && (
+                          <button 
+                            onClick={() => handleStartEdit(draw)}
+                            style={{ background: 'transparent', border: 'none', color: 'var(--gold)', cursor: 'pointer', fontSize: '12px', marginLeft: '6px' }}
+                            title="แก้ไขผลรางวัล"
+                          >
+                            ✏️
+                          </button>
+                        )}
+                      </td>
                       <td style={{ textAlign: 'center' }}>
                         <span className="numbers-font" style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--gold)', letterSpacing: '2px', textShadow: '0 0 10px var(--gold-glow)' }}>
                           {draw.firstPrize}
@@ -335,7 +402,26 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [] }) {
                       {/* Parent Date Row Header */}
                       <tr style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
                         <td colSpan="6" style={{ padding: '12px 24px', fontWeight: 'bold', color: '#FFFFFF', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                          📅 ประจำงวดวันที่: <span style={{ color: lottoType === 'lao' ? '#00E5FF' : '#FF007F' }}>{draw.date}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                            <span>📅 ประจำงวดวันที่: <span style={{ color: lottoType === 'lao' ? '#00E5FF' : '#FF007F' }}>{draw.date}</span></span>
+                            {onUpdateDraw && (
+                              <button 
+                                onClick={() => handleStartEdit(draw)}
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: 'var(--gold)',
+                                  cursor: 'pointer',
+                                  fontSize: '13px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                              >
+                                ✏️ แก้ไขผลรางวัล
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
 
@@ -490,6 +576,159 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [] }) {
           >
             ถัดไป →
           </button>
+        </div>
+      )}
+
+      {/* Edit Results Modal Overlay */}
+      {editingDraw && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(7, 5, 20, 0.85)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div className="glass-card" style={{
+            width: '100%',
+            maxWidth: '500px',
+            border: `1px solid ${lottoType === 'lao' ? '#00E5FF' : lottoType === 'hanoi' ? '#FF007F' : 'var(--gold)'}`,
+            boxShadow: `0 0 20px ${lottoType === 'lao' ? 'rgba(0,229,255,0.2)' : lottoType === 'hanoi' ? 'rgba(255,0,127,0.2)' : 'var(--gold-glow)'}`
+          }}>
+            <h3 style={{ fontSize: '20px', marginBottom: '16px', borderBottom: '1px solid var(--border-card)', paddingBottom: '10px' }}>
+              ✏️ แก้ไขผลรางวัล ({editingDraw.date})
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+              {lottoType === 'thai' ? (
+                <>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>รางวัลที่ 1 (6 หลัก)</label>
+                    <input 
+                      type="text" 
+                      value={editFormData.firstPrize}
+                      onChange={(e) => setEditFormData({ ...editFormData, firstPrize: e.target.value })}
+                      className="search-input"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>เลขหน้า 3 ตัว (ชุด 1)</label>
+                      <input 
+                        type="text" 
+                        value={editFormData.threeDigitFront1}
+                        onChange={(e) => setEditFormData({ ...editFormData, threeDigitFront1: e.target.value })}
+                        className="search-input"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>เลขหน้า 3 ตัว (ชุด 2)</label>
+                      <input 
+                        type="text" 
+                        value={editFormData.threeDigitFront2}
+                        onChange={(e) => setEditFormData({ ...editFormData, threeDigitFront2: e.target.value })}
+                        className="search-input"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>เลขท้าย 3 ตัว (ชุด 1)</label>
+                      <input 
+                        type="text" 
+                        value={editFormData.threeDigitBack1}
+                        onChange={(e) => setEditFormData({ ...editFormData, threeDigitBack1: e.target.value })}
+                        className="search-input"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>เลขท้าย 3 ตัว (ชุด 2)</label>
+                      <input 
+                        type="text" 
+                        value={editFormData.threeDigitBack2}
+                        onChange={(e) => setEditFormData({ ...editFormData, threeDigitBack2: e.target.value })}
+                        className="search-input"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>เลขท้าย 2 ตัว</label>
+                    <input 
+                      type="text" 
+                      value={editFormData.twoDigitBack}
+                      onChange={(e) => setEditFormData({ ...editFormData, twoDigitBack: e.target.value })}
+                      className="search-input"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                </>
+              ) : (
+                Object.keys(editFormData).map(key => {
+                  const labelName = key === 'star' ? 'ลาวสตาร์ (4 หลัก)' 
+                    : key === 'development' ? 'หวยลาวพัฒนา (4 หลัก)'
+                    : key === 'samakkee' ? 'ลาวสามัคคี (4 หลัก)'
+                    : key === 'special' ? 'ฮานอยพิเศษ (5 หลัก)'
+                    : key === 'normal' ? 'ฮานอยปกติ (5 หลัก)'
+                    : 'ฮานอย VIP (5 หลัก)';
+
+                  return (
+                    <div key={key}>
+                      <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>{labelName}</label>
+                      <input 
+                        type="text" 
+                        value={editFormData[key]}
+                        onChange={(e) => setEditFormData({ ...editFormData, [key]: e.target.value })}
+                        className="search-input"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setEditingDraw(null)}
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-card)',
+                  color: '#FFFFFF',
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: '14px'
+                }}
+              >
+                ยกเลิก
+              </button>
+              <button 
+                onClick={handleSaveEdit}
+                style={{
+                  background: lottoType === 'lao' ? 'linear-gradient(135deg, #0077FF 0%, #00E5FF 100%)' : lottoType === 'hanoi' ? 'linear-gradient(135deg, #FF007F 0%, #FF5500 100%)' : 'linear-gradient(135deg, var(--gold) 0%, #FFA500 100%)',
+                  border: 'none',
+                  color: lottoType === 'thai' ? '#000' : '#FFF',
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: '14px'
+                }}
+              >
+                บันทึกข้อมูล
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

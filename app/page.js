@@ -420,6 +420,26 @@ export default function Home() {
     }, 1800);
   };
 
+  const handleUpdateDraw = (lottoType, date, updatedDrawData) => {
+    setDatabases(prev => {
+      const currentList = [...prev[lottoType]];
+      const idx = currentList.findIndex(d => d.date === date);
+      if (idx === -1) return prev;
+      
+      currentList[idx] = {
+        ...currentList[idx],
+        ...updatedDrawData
+      };
+      
+      return {
+        ...prev,
+        [lottoType]: currentList
+      };
+    });
+    setNotification('💾 บันทึกการแก้ไขผลรางวัลและคำนวณสถิติเรียบร้อยแล้ว');
+    setTimeout(() => setNotification(''), 4000);
+  };
+
   const activeData = databases[activeLotto];
   // Extract sub-draws based on selected active sub-lotto
   const subDataForPredictor = getSubDrawsOnly(activeData, activeLotto, activeSubLotto);
@@ -746,7 +766,7 @@ export default function Home() {
       {/* Main Dynamic Content Display */}
       <main style={{ minHeight: '500px', marginBottom: '40px' }}>
         {activeTab === 'predictor' && <LottoPredictor lottoType={activeLotto} lottoData={subDataForPredictor} />}
-        {activeTab === 'history' && <LottoHistory lottoType={activeLotto} lottoData={activeData} />}
+        {activeTab === 'history' && <LottoHistory lottoType={activeLotto} lottoData={activeData} onUpdateDraw={handleUpdateDraw} />}
         {activeTab === 'performance' && <AIPerformance lottoType={activeLotto} lottoData={activeData} activeSubLotto={activeSubLotto} />}
         {activeTab === 'generator' && <LuckyGenerator lottoType={activeLotto} />}
         {activeTab === 'famous' && <FamousNumbers lottoType={activeLotto} />}
