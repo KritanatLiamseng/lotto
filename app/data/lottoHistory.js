@@ -411,57 +411,57 @@ export const lottoHistory = [
 // Lao Development Lottery History with nested sub-draws (Star, Development, Samakkee)
 export const laoLottoHistory = [
   {
-    date: "16 กรกฎาคม 2569",
+    date: "17 กรกฎาคม 2569",
     star: { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: "7204", twoDigitBack: "04", threeDigitBack: "204" },
-    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "6395", twoDigitBack: "95", threeDigitBack: "395" },
+    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "4604", twoDigitBack: "04", threeDigitBack: "604", status: "official" },
     samakkee: { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: "8951", twoDigitBack: "51", threeDigitBack: "951" }
   },
   {
     date: "15 กรกฎาคม 2569",
     star: { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: "9021", twoDigitBack: "21", threeDigitBack: "021" },
-    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "5482", twoDigitBack: "82", threeDigitBack: "482" },
+    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "9375", twoDigitBack: "75", threeDigitBack: "375", status: "official" },
     samakkee: { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: "7849", twoDigitBack: "49", threeDigitBack: "849" }
   },
   {
     date: "13 กรกฎาคม 2569",
     star: { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: "2019", twoDigitBack: "19", threeDigitBack: "019" },
-    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "7019", twoDigitBack: "19", threeDigitBack: "019" },
+    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "2866", twoDigitBack: "66", threeDigitBack: "866", status: "official" },
     samakkee: { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: "5413", twoDigitBack: "13", threeDigitBack: "413" }
   },
   {
     date: "10 กรกฎาคม 2569",
     star: { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: "8310", twoDigitBack: "10", threeDigitBack: "310" },
-    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "9310", twoDigitBack: "10", threeDigitBack: "310" },
+    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "0277", twoDigitBack: "77", threeDigitBack: "277", status: "official" },
     samakkee: { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: "8920", twoDigitBack: "20", threeDigitBack: "920" }
   },
   {
     date: "8 กรกฎาคม 2569",
     star: { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: "7214", twoDigitBack: "14", threeDigitBack: "214" },
-    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "2543", twoDigitBack: "43", threeDigitBack: "543" },
+    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "6920", twoDigitBack: "20", threeDigitBack: "920", status: "official" },
     samakkee: { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: "0982", twoDigitBack: "82", threeDigitBack: "982" }
   },
   {
     date: "6 กรกฎาคม 2569",
     star: { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: "5329", twoDigitBack: "29", threeDigitBack: "329" },
-    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "8729", twoDigitBack: "29", threeDigitBack: "729" },
+    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "2227", twoDigitBack: "27", threeDigitBack: "227", status: "official" },
     samakkee: { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: "1450", twoDigitBack: "50", threeDigitBack: "450" }
   },
   {
     date: "3 กรกฎาคม 2569",
     star: { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: "4204", twoDigitBack: "04", threeDigitBack: "204" },
-    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "1204", twoDigitBack: "04", threeDigitBack: "204" },
+    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "0392", twoDigitBack: "92", threeDigitBack: "392", status: "official" },
     samakkee: { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: "3051", twoDigitBack: "51", threeDigitBack: "051" }
   },
   {
     date: "1 กรกฎาคม 2569",
     star: { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: "0985", twoDigitBack: "85", threeDigitBack: "985" },
-    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "6985", twoDigitBack: "85", threeDigitBack: "985" },
+    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "7147", twoDigitBack: "47", threeDigitBack: "147", status: "official" },
     samakkee: { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: "7632", twoDigitBack: "32", threeDigitBack: "632" }
   },
   {
     date: "29 มิถุนายน 2569",
     star: { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: "4471", twoDigitBack: "71", threeDigitBack: "471" },
-    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "3471", twoDigitBack: "71", threeDigitBack: "471" },
+    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "6782", twoDigitBack: "82", threeDigitBack: "782", status: "official" },
     samakkee: { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: "8905", twoDigitBack: "05", threeDigitBack: "905" }
   },
   {

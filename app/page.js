@@ -10,6 +10,26 @@ import AIPerformance from './components/AIPerformance';
 // Baseline data
 import { lottoHistory, laoLottoHistory, hanoiLottoHistory, getSubDrawsOnly } from './data/lottoHistory';
 
+const monthsThai = [
+  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+];
+
+const parseThaiDate = (dateStr) => {
+  if (!dateStr) return null;
+  const parts = dateStr.trim().split(/\s+/);
+  if (parts.length !== 3) return null;
+  const day = parseInt(parts[0]);
+  const monthThai = parts[1];
+  const yearThai = parseInt(parts[2]);
+  
+  const monthIdx = monthsThai.indexOf(monthThai);
+  if (monthIdx === -1) return null;
+  
+  const yearEng = yearThai - 543;
+  return new Date(yearEng, monthIdx, day);
+};
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState('predictor');
   const [activeLotto, setActiveLotto] = useState('thai'); // 'thai', 'lao', 'hanoi'
@@ -28,14 +48,34 @@ export default function Home() {
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [notification, setNotification] = useState('');
 
-  // Load persisted database on mount
+  // Load persisted database on mount and merge with official baseline data
   React.useEffect(() => {
     try {
       const persisted = localStorage.getItem('lottooracle_db');
       if (persisted) {
         const parsed = JSON.parse(persisted);
         if (parsed.thai && parsed.lao && parsed.hanoi) {
-          setDatabases(parsed);
+          const mergeDb = (baselineList, persistedList) => {
+            const merged = [...baselineList];
+            persistedList.forEach(pItem => {
+              if (!merged.some(bItem => bItem.date === pItem.date)) {
+                merged.push(pItem);
+              }
+            });
+            return merged.sort((a, b) => {
+              const dateA = parseThaiDate(a.date);
+              const dateB = parseThaiDate(b.date);
+              if (!dateA) return 1;
+              if (!dateB) return -1;
+              return dateB - dateA;
+            });
+          };
+
+          setDatabases({
+            thai: mergeDb(lottoHistory, parsed.thai),
+            lao: mergeDb(laoLottoHistory, parsed.lao),
+            hanoi: mergeDb(hanoiLottoHistory, parsed.hanoi)
+          });
         }
       }
     } catch (e) {
@@ -102,30 +142,9 @@ export default function Home() {
     const currentMinute = now.getMinutes();
     const currentTimeVal = currentHour * 60 + currentMinute; // minutes since midnight
 
-    const monthsThai = [
-      "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-      "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
-    ];
-
     setDatabases(prev => {
       let updated = false;
       const nextDbs = { ...prev };
-
-      // Helper to parse Thai date strings back to JavaScript Date objects
-      const parseThaiDate = (dateStr) => {
-        if (!dateStr) return null;
-        const parts = dateStr.trim().split(/\s+/);
-        if (parts.length !== 3) return null;
-        const day = parseInt(parts[0]);
-        const monthThai = parts[1];
-        const yearThai = parseInt(parts[2]);
-        
-        const monthIdx = monthsThai.indexOf(monthThai);
-        if (monthIdx === -1) return null;
-        
-        const yearEng = yearThai - 543;
-        return new Date(yearEng, monthIdx, day);
-      };
 
       const backfillList = (currentList, isLao) => {
         if (currentList.length === 0) return { list: currentList, changed: false };
