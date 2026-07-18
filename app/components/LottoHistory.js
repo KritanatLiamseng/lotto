@@ -35,6 +35,25 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [], onUpd
     }
   };
 
+  const parseThaiDate = (dateStr) => {
+    if (!dateStr) return null;
+    const parts = dateStr.trim().split(/\s+/);
+    if (parts.length !== 3) return null;
+    const day = parseInt(parts[0]);
+    const monthThai = parts[1];
+    const yearThai = parseInt(parts[2]);
+    
+    const monthsThai = [
+      "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+      "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+    ];
+    const monthIdx = monthsThai.indexOf(monthThai);
+    if (monthIdx === -1) return null;
+    
+    const yearEng = yearThai - 543;
+    return new Date(yearEng, monthIdx, day);
+  };
+
   const handleSaveEdit = () => {
     let updatedData = {};
     if (lottoType === 'thai') {
@@ -42,7 +61,8 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [], onUpd
         firstPrize: editFormData.firstPrize,
         twoDigitBack: editFormData.twoDigitBack,
         threeDigitFront: [editFormData.threeDigitFront1, editFormData.threeDigitFront2].filter(Boolean),
-        threeDigitBack: [editFormData.threeDigitBack1, editFormData.threeDigitBack2].filter(Boolean)
+        threeDigitBack: [editFormData.threeDigitBack1, editFormData.threeDigitBack2].filter(Boolean),
+        status: 'official'
       };
     } else {
       const keys = lottoType === 'lao' ? ['star', 'development', 'samakkee'] : ['special', 'normal', 'vip'];
@@ -53,7 +73,8 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [], onUpd
             ...editingDraw[k],
             firstPrize: val,
             threeDigitBack: val.slice(-3),
-            twoDigitBack: val.slice(-2)
+            twoDigitBack: val.slice(-2),
+            status: 'official'
           };
         }
       });
@@ -484,6 +505,25 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [], onUpd
                               }}>
                                 {sub.firstPrize}
                               </span>
+                              {(() => {
+                                const drawDate = parseThaiDate(draw.date);
+                                const cutoffDate = new Date(2026, 6, 16); // July 16, 2026
+                                const isOfficial = sub.status === 'official' || (drawDate && drawDate <= cutoffDate);
+
+                                return (
+                                  <div style={{ marginTop: '4px' }}>
+                                    {isOfficial ? (
+                                      <span style={{ color: '#10B981', fontSize: '9px', fontWeight: 'bold', background: 'rgba(16, 185, 129, 0.1)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                        ✅ ผลจริง
+                                      </span>
+                                    ) : (
+                                      <span style={{ color: 'var(--text-muted)', fontSize: '9px', background: 'rgba(255,255,255,0.03)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                        ⚠️ ผลจำลอง
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </td>
 
                             {/* 3-Digit Out */}
