@@ -149,24 +149,35 @@ export default function Home() {
           const tMonth = monthsThai[tempDate.getMonth()];
           const tYear = tempDate.getFullYear() + 543;
           const formattedDate = `${tDay} ${tMonth} ${tYear}`;
+          const dayOfWeek = tempDate.getDay(); // 0: Sun, 1: Mon, ..., 6: Sat
 
           if (!isToday) {
-            // Past day: backfill all rounds for this day
+            // Past day: backfill all rounds for this day (based on active schedules)
             const newEntry = { date: formattedDate };
             if (isLao) {
+              // Star is daily
               const starVal = generateRandomLottoDigits(4);
-              const devVal = generateRandomLottoDigits(4);
-              const samVal = generateRandomLottoDigits(4);
               newEntry.star = { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: starVal, twoDigitBack: starVal.slice(-2), threeDigitBack: starVal.slice(-3) };
-              newEntry.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: devVal, twoDigitBack: devVal.slice(-2), threeDigitBack: devVal.slice(-3) };
-              newEntry.samakkee = { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: samVal, twoDigitBack: samVal.slice(-2), threeDigitBack: samVal.slice(-3) };
+              
+              // Development is Mon-Fri (1-5)
+              if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                const devVal = generateRandomLottoDigits(4);
+                newEntry.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: devVal, twoDigitBack: devVal.slice(-2), threeDigitBack: devVal.slice(-3) };
+              }
+              
+              // Samakkee is Tue, Wed, Fri, Sat, Sun (not Mon=1, not Thu=4)
+              if (dayOfWeek !== 1 && dayOfWeek !== 4) {
+                const samVal = generateRandomLottoDigits(4);
+                newEntry.samakkee = { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: samVal, twoDigitBack: samVal.slice(-2), threeDigitBack: samVal.slice(-3) };
+              }
             } else {
+              // Hanoi is daily
               const specVal = generateRandomLottoDigits(5);
               const normVal = generateRandomLottoDigits(5);
               const vipVal = generateRandomLottoDigits(5);
-              newEntry.special = { name: "ฮานอยพิเศษ", time: "17:30 น.", firstPrize: specVal, twoDigitBack: specVal.slice(-2), threeDigitBack: specVal.slice(-3) };
+              newEntry.special = { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: specVal, twoDigitBack: specVal.slice(-2), threeDigitBack: specVal.slice(-3) };
               newEntry.normal = { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: normVal, twoDigitBack: normVal.slice(-2), threeDigitBack: normVal.slice(-3) };
-              newEntry.vip = { name: "ฮานอย VIP", time: "19:30 น.", firstPrize: vipVal, twoDigitBack: vipVal.slice(-2), threeDigitBack: vipVal.slice(-3) };
+              newEntry.vip = { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: vipVal, twoDigitBack: vipVal.slice(-2), threeDigitBack: vipVal.slice(-3) };
             }
             newEntries.unshift(newEntry);
             listChanged = true;
@@ -186,20 +197,20 @@ export default function Home() {
                 todayEntry.star = { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: starVal, twoDigitBack: starVal.slice(-2), threeDigitBack: starVal.slice(-3) };
                 todayUpdated = true;
               }
-              if (currentTimeVal >= 1230 && !todayEntry.development) { // Past 20:30
+              if (dayOfWeek >= 1 && dayOfWeek <= 5 && currentTimeVal >= 1230 && !todayEntry.development) { // Mon-Fri & Past 20:30
                 const devVal = generateRandomLottoDigits(4);
                 todayEntry.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: devVal, twoDigitBack: devVal.slice(-2), threeDigitBack: devVal.slice(-3) };
                 todayUpdated = true;
               }
-              if (currentTimeVal >= 1290 && !todayEntry.samakkee) { // Past 21:30
+              if (dayOfWeek !== 1 && dayOfWeek !== 4 && currentTimeVal >= 1290 && !todayEntry.samakkee) { // (not Mon/Thu) & Past 21:30
                 const samVal = generateRandomLottoDigits(4);
                 todayEntry.samakkee = { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: samVal, twoDigitBack: samVal.slice(-2), threeDigitBack: samVal.slice(-3) };
                 todayUpdated = true;
               }
             } else {
-              if (currentTimeVal >= 1050 && !todayEntry.special) { // Past 17:30
+              if (currentTimeVal >= 1035 && !todayEntry.special) { // Past 17:15
                 const specVal = generateRandomLottoDigits(5);
-                todayEntry.special = { name: "ฮานอยพิเศษ", time: "17:30 น.", firstPrize: specVal, twoDigitBack: specVal.slice(-2), threeDigitBack: specVal.slice(-3) };
+                todayEntry.special = { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: specVal, twoDigitBack: specVal.slice(-2), threeDigitBack: specVal.slice(-3) };
                 todayUpdated = true;
               }
               if (currentTimeVal >= 1110 && !todayEntry.normal) { // Past 18:30
@@ -207,9 +218,9 @@ export default function Home() {
                 todayEntry.normal = { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: normVal, twoDigitBack: normVal.slice(-2), threeDigitBack: normVal.slice(-3) };
                 todayUpdated = true;
               }
-              if (currentTimeVal >= 1170 && !todayEntry.vip) { // Past 19:30
+              if (currentTimeVal >= 1155 && !todayEntry.vip) { // Past 19:15
                 const vipVal = generateRandomLottoDigits(5);
-                todayEntry.vip = { name: "ฮานอย VIP", time: "19:30 น.", firstPrize: vipVal, twoDigitBack: vipVal.slice(-2), threeDigitBack: vipVal.slice(-3) };
+                todayEntry.vip = { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: vipVal, twoDigitBack: vipVal.slice(-2), threeDigitBack: vipVal.slice(-3) };
                 todayUpdated = true;
               }
             }
@@ -265,14 +276,14 @@ export default function Home() {
       details: "ถ่ายทอดสดทางสถานีโทรทัศน์แห่งประเทศไทย ช่อง NBT และสถานีวิทยุกระจายเสียงแห่งประเทศไทย"
     },
     lao: {
-      time: "ทุกวัน | เวลา 20:00 น. - 20:30 น. (ออกผลรางวัลพัฒนาและรอบย่อยทุกวัน)",
+      time: "ลาวพัฒนา: จ.-ศ. (20:30) | ลาวสตาร์: ทุกวัน (15:45) | ลาวสามัคคี: อ.,พ.,ศ.,ส.,อา. (21:30)",
       nextDraw: "วันนี้ 20:30 น.",
       flag: "🇱🇦",
       title: "หวยลาว (ลาวสตาร์, ลาวพัฒนา, ลาวสามัคคี)",
-      details: "หวยลาวพัฒนาปรับปรุงการออกผลเป็นประจำทุกวัน ร่วมกับรอบลาวสตาร์และลาวสามัคคี"
+      details: "หวยลาวแยกกำหนดการออกรางวัลตามประเภทรอบย่อยและวันทำการของธนาคารลาว"
     },
     hanoi: {
-      time: "ออกผลเป็นประจำทุกวันรอบย่อยสามรอบ | เวลา 17:30 น., 18:30 น. และ 19:30 น.",
+      time: "ฮานอยพิเศษ: 17:15 | ฮานอยปกติ: 18:30 | ฮานอย VIP: 19:15 (ทุกวัน)",
       nextDraw: "วันนี้ 18:30 น.",
       flag: "🇻🇳",
       title: "หวยฮานอย (ฮานอยพิเศษ, ฮานอยปกติ, ฮานอย VIP)",
@@ -475,9 +486,9 @@ export default function Home() {
         }}>
           {activeLotto === 'lao' ? (
             [
-              { id: 'star', label: '🟠 ลาวสตาร์ (15:45)' },
-              { id: 'development', label: '🟡 หวยลาวพัฒนา (20:30)' },
-              { id: 'samakkee', label: '🟣 ลาวสามัคคี (21:30)' }
+              { id: 'star', label: '🟠 ลาวสตาร์ (ทุกวัน 15:45 น.)' },
+              { id: 'development', label: '🟡 หวยลาวพัฒนา (จ.-ศ. 20:30 น.)' },
+              { id: 'samakkee', label: '🟣 ลาวสามัคคี (อ.,พ.,ศ.,ส.,อา. 21:30 น.)' }
             ].map(sub => (
               <button
                 key={sub.id}
@@ -500,9 +511,9 @@ export default function Home() {
             ))
           ) : (
             [
-              { id: 'special', label: '🟠 ฮานอยพิเศษ (17:30)' },
-              { id: 'normal', label: '🔴 ฮานอยปกติ (18:30)' },
-              { id: 'vip', label: '🟣 ฮานอย VIP (19:30)' }
+              { id: 'special', label: '🟠 ฮานอยพิเศษ (17:15 น.)' },
+              { id: 'normal', label: '🔴 ฮานอยปกติ (18:30 น.)' },
+              { id: 'vip', label: '🟣 ฮานอย VIP (19:15 น.)' }
             ].map(sub => (
               <button
                 key={sub.id}

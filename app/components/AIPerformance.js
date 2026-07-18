@@ -113,9 +113,9 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [], acti
                 { key: 'samakkee', name: 'ลาวสามัคคี', time: '21:30 น.' }
               ]
             : [
-                { key: 'special', name: 'ฮานอยพิเศษ', time: '17:30 น.' },
+                { key: 'special', name: 'ฮานอยพิเศษ', time: '17:15 น.' },
                 { key: 'normal', name: 'ฮานอยปกติ', time: '18:30 น.' },
-                { key: 'vip', name: 'ฮานอย VIP', time: '19:30 น.' }
+                { key: 'vip', name: 'ฮานอย VIP', time: '19:15 น.' }
               ];
 
           subDrawKeys.forEach(sub => {
@@ -231,9 +231,9 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [], acti
                 { key: 'samakkee', name: 'ลาวสามัคคี', time: '21:30 น.' }
               ]
             : [
-                { key: 'special', name: 'ฮานอยพิเศษ', time: '17:30 น.' },
+                { key: 'special', name: 'ฮานอยพิเศษ', time: '17:15 น.' },
                 { key: 'normal', name: 'ฮานอยปกติ', time: '18:30 น.' },
-                { key: 'vip', name: 'ฮานอย VIP', time: '19:30 น.' }
+                { key: 'vip', name: 'ฮานอย VIP', time: '19:15 น.' }
               ];
 
           subDrawKeys.forEach(sub => {
@@ -313,9 +313,9 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [], acti
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         {[
           { id: 'all', label: '⚡ ทุกรอบย่อย' },
-          { id: 'primary', label: lottoType === 'lao' ? '🟡 หวยลาวพัฒนา (20:30)' : '🟡 ฮานอยปกติ (18:30)' },
-          { id: 'secondary', label: lottoType === 'lao' ? '🟠 ลาวสตาร์ (15:45)' : '🟠 ฮานอยพิเศษ (17:30)' },
-          { id: 'vip', label: lottoType === 'lao' ? '🟣 ลาวสามัคคี (21:30)' : '🟣 ฮานอย VIP (19:30)' }
+          { id: 'primary', label: lottoType === 'lao' ? '🟡 หวยลาวพัฒนา (จ.-ศ. 20:30)' : '🟡 ฮานอยปกติ (ทุกวัน 18:30)' },
+          { id: 'secondary', label: lottoType === 'lao' ? '🟠 ลาวสตาร์ (ทุกวัน 15:45)' : '🟠 ฮานอยพิเศษ (ทุกวัน 17:15)' },
+          { id: 'vip', label: lottoType === 'lao' ? '🟣 ลาวสามัคคี (อ.,พ.,ศ.,ส.,อา. 21:30)' : '🟣 ฮานอย VIP (ทุกวัน 19:15)' }
         ].map(btn => (
           <button
             key={btn.id}
