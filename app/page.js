@@ -178,9 +178,11 @@ export default function Home() {
               const starVal = generateRandomLottoDigits(4);
               newEntry.star = { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: starVal, twoDigitBack: starVal.slice(-2), threeDigitBack: starVal.slice(-3) };
               
-              // Development is daily (every day)
-              const devVal = generateRandomLottoDigits(4);
-              newEntry.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: devVal, twoDigitBack: devVal.slice(-2), threeDigitBack: devVal.slice(-3) };
+              // Development is Mon-Fri (1-5)
+              if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                const devVal = generateRandomLottoDigits(4);
+                newEntry.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: devVal, twoDigitBack: devVal.slice(-2), threeDigitBack: devVal.slice(-3) };
+              }
               
               // Samakkee is Tue, Wed, Fri, Sat, Sun (not Mon=1, not Thu=4)
               if (dayOfWeek !== 1 && dayOfWeek !== 4) {
@@ -214,7 +216,7 @@ export default function Home() {
                 todayEntry.star = { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: starVal, twoDigitBack: starVal.slice(-2), threeDigitBack: starVal.slice(-3) };
                 todayUpdated = true;
               }
-              if (currentTimeVal >= 1230 && !todayEntry.development) { // Past 20:30
+              if (dayOfWeek >= 1 && dayOfWeek <= 5 && currentTimeVal >= 1230 && !todayEntry.development) { // Mon-Fri & Past 20:30
                 const devVal = generateRandomLottoDigits(4);
                 todayEntry.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: devVal, twoDigitBack: devVal.slice(-2), threeDigitBack: devVal.slice(-3) };
                 todayUpdated = true;
@@ -293,11 +295,11 @@ export default function Home() {
       details: "ถ่ายทอดสดทางสถานีโทรทัศน์แห่งประเทศไทย ช่อง NBT และสถานีวิทยุกระจายเสียงแห่งประเทศไทย"
     },
     lao: {
-      time: "ลาวพัฒนา: ทุกวัน (20:30) | ลาวสตาร์: ทุกวัน (15:45) | ลาวสามัคคี: อ.,พ.,ศ.,ส.,อา. (21:30)",
+      time: "ลาวพัฒนา: จ.-ศ. (20:30) | ลาวสตาร์: ทุกวัน (15:45) | ลาวสามัคคี: อ.,พ.,ศ.,ส.,อา. (21:30)",
       nextDraw: "วันนี้ 20:30 น.",
       flag: "🇱🇦",
       title: "หวยลาว (ลาวสตาร์, ลาวพัฒนา, ลาวสามัคคี)",
-      details: "หวยลาวแยกกำหนดการออกรางวัลตามประเภทรอบย่อยในแต่ละวันอย่างต่อเนื่อง"
+      details: "หวยลาวแยกกำหนดการออกรางวัลตามประเภทรอบย่อยและวันทำการของธนาคารลาว"
     },
     hanoi: {
       time: "ฮานอยพิเศษ: 17:15 | ฮานอยปกติ: 18:30 | ฮานอย VIP: 19:15 (ทุกวัน)",
@@ -534,7 +536,7 @@ export default function Home() {
           {activeLotto === 'lao' ? (
             [
               { id: 'star', label: '🟠 ลาวสตาร์ (ทุกวัน 15:45 น.)' },
-              { id: 'development', label: '🟡 หวยลาวพัฒนา (ทุกวัน 20:30 น.)' },
+              { id: 'development', label: '🟡 หวยลาวพัฒนา (จ.-ศ. 20:30 น.)' },
               { id: 'samakkee', label: '🟣 ลาวสามัคคี (อ.,พ.,ศ.,ส.,อา. 21:30 น.)' }
             ].map(sub => (
               <button
