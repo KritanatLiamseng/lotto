@@ -138,38 +138,61 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
 
         {/* Probability Bars Chart */}
         <div className="glass-card">
-          <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>
-            📊 เปอร์เซ็นต์ความน่าจะเป็นของเลขเด่น (0 - 9)
-          </h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+            <h2 style={{ fontSize: '20px', margin: 0 }}>
+              📊 กราฟวิเคราะห์พลังความน่าจะเป็น AI (0 - 9)
+            </h2>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.03)', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
+              เรียงตามน้ำหนัก Ensemble v2
+            </span>
+          </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {predictions.map((item, index) => {
               const barColor = lottoType === 'lao' 
-                ? `hsl(${180 - (index * 6)}, 100%, 45%)` 
+                ? `hsl(${180 - (index * 8)}, 100%, 50%)` 
                 : lottoType === 'hanoi' 
-                ? `hsl(${340 - (index * 8)}, 100%, 50%)`
-                : `hsl(${45 + (index * 15)}, 100%, 50%)`;
+                ? `hsl(${340 - (index * 10)}, 100%, 55%)`
+                : `hsl(${45 + (index * 12)}, 100%, 50%)`;
+
+              const rankBadge = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+              const isTop3 = index < 3;
+
               return (
-                <div key={item.digit} style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div className="numbers-font" style={{ fontSize: '20px', fontWeight: 'bold', width: '20px', textAlign: 'center' }}>
-                    {item.digit}
+                <div key={item.digit} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '14px',
+                  background: isTop3 ? 'rgba(255,255,255,0.02)' : 'transparent',
+                  padding: isTop3 ? '8px 12px' : '4px 0',
+                  borderRadius: '10px',
+                  border: isTop3 ? `1px solid ${barColor}33` : 'none'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '45px' }}>
+                    <span style={{ fontSize: '13px', width: '20px', textAlign: 'center' }}>{rankBadge}</span>
+                    <span className="numbers-font" style={{ fontSize: '22px', fontWeight: 'bold', color: isTop3 ? '#FFFFFF' : 'var(--text-muted)' }}>
+                      {item.digit}
+                    </span>
                   </div>
+
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '2px' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>
-                        {item.lastSeen === 0 ? 'ออกในงวดล่าสุด' : `ยังไม่ออกมา ${item.lastSeen} งวด`}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                      <span style={{ color: isTop3 ? '#FFFFFF' : 'var(--text-muted)', fontWeight: isTop3 ? '500' : 'normal' }}>
+                        {item.lastSeen === 0 ? '🔥 ออกในงวดล่าสุด' : `ยังไม่ออกมา ${item.lastSeen} งวด`}
                       </span>
-                      <span className="numbers-font" style={{ fontWeight: 'bold', color: barColor }}>
+                      <span className="numbers-font" style={{ fontWeight: 'bold', color: barColor, fontSize: '13px' }}>
                         {item.probability}%
                       </span>
                     </div>
-                    <div className="progress-bar-container">
+                    <div className="progress-bar-container" style={{ height: isTop3 ? '12px' : '8px', background: 'rgba(255,255,255,0.04)' }}>
                       <div 
                         className="progress-bar-fill" 
                         style={{ 
-                          width: `${item.probability * 4.5}%`,
-                          maxWidth: '100%',
-                          background: `linear-gradient(90deg, var(--bg-card), ${barColor})`
+                          width: `${Math.min(item.probability * 4.5, 100)}%`,
+                          background: `linear-gradient(90deg, ${barColor}44 0%, ${barColor} 100%)`,
+                          boxShadow: isTop3 ? `0 0 10px ${barColor}` : 'none',
+                          borderRadius: '6px',
+                          transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
                         }}
                       />
                     </div>

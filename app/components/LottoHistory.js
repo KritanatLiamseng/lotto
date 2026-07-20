@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { backtestDraw, getPredictionStats } from '../data/lottoHistory';
 
-export default function LottoHistory({ lottoType = 'thai', lottoData = [], onUpdateDraw }) {
+export default function LottoHistory({ lottoType = 'thai', lottoData = [], onUpdateDraw, isAdminMode = false, onToggleAdmin }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedYear, setSelectedYear] = useState('ทั้งหมด');
   const [currentPage, setCurrentPage] = useState(1);
@@ -220,32 +220,56 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [], onUpd
           {lottoType === 'lao' ? 'หวยลาวย้อนหลัง' : lottoType === 'hanoi' ? 'หวยฮานอยย้อนหลัง' : 'สลากกินแบ่งรัฐบาลไทยย้อนหลัง'}
         </h2>
         
-        {/* Year Filter Buttons */}
-        <div style={{ display: 'flex', gap: '6px', background: 'rgba(255,255,255,0.02)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-card)' }}>
-          {getYearFilters().map(year => (
-            <button
-              key={year}
-              onClick={() => setSelectedYear(year)}
-              style={{
-                background: selectedYear === year 
-                  ? (lottoType === 'lao' ? '#00E5FF' : lottoType === 'hanoi' ? '#FF007F' : 'var(--primary)') 
-                  : 'transparent',
-                color: selectedYear === year 
-                  ? (lottoType === 'lao' ? '#000' : '#FFFFFF') 
-                  : 'var(--text-muted)',
-                border: 'none',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontFamily: 'var(--font-sans)',
-                fontSize: '14px',
-                fontWeight: '500',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              {year}
-            </button>
-          ))}
+        {/* Year Filter Buttons and Admin Switch */}
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Admin Mode Toggle Switch */}
+          <button
+            onClick={() => onToggleAdmin && onToggleAdmin(!isAdminMode)}
+            style={{
+              background: isAdminMode ? 'rgba(255, 215, 0, 0.15)' : 'rgba(255,255,255,0.02)',
+              color: isAdminMode ? 'var(--gold)' : 'var(--text-muted)',
+              border: `1px solid ${isAdminMode ? 'var(--gold)' : 'var(--border-card)'}`,
+              padding: '6px 14px',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.3s ease',
+              boxShadow: isAdminMode ? '0 0 10px var(--gold-glow)' : 'none'
+            }}
+          >
+            {isAdminMode ? '🔓 โหมดแก้ไข (Admin ON)' : '🔐 โหมดแก้ไข (Admin OFF)'}
+          </button>
+
+          <div style={{ display: 'flex', gap: '6px', background: 'rgba(255,255,255,0.02)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-card)' }}>
+            {getYearFilters().map(year => (
+              <button
+                key={year}
+                onClick={() => setSelectedYear(year)}
+                style={{
+                  background: selectedYear === year 
+                    ? (lottoType === 'lao' ? '#00E5FF' : lottoType === 'hanoi' ? '#FF007F' : 'var(--primary)') 
+                    : 'transparent',
+                  color: selectedYear === year 
+                    ? (lottoType === 'lao' ? '#000' : '#FFFFFF') 
+                    : 'var(--text-muted)',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {year}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -337,7 +361,7 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [], onUpd
                     <tr key={index}>
                       <td style={{ fontWeight: '500', minWidth: '150px' }}>
                         {draw.date}
-                        {onUpdateDraw && (
+                        {isAdminMode && onUpdateDraw && (
                           <button 
                             onClick={() => handleStartEdit(draw)}
                             style={{ background: 'transparent', border: 'none', color: 'var(--gold)', cursor: 'pointer', fontSize: '12px', marginLeft: '6px' }}
@@ -425,7 +449,7 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [], onUpd
                         <td colSpan="6" style={{ padding: '12px 24px', fontWeight: 'bold', color: '#FFFFFF', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                             <span>📅 ประจำงวดวันที่: <span style={{ color: lottoType === 'lao' ? '#00E5FF' : '#FF007F' }}>{draw.date}</span></span>
-                            {onUpdateDraw && (
+                            {isAdminMode && onUpdateDraw && (
                               <button 
                                 onClick={() => handleStartEdit(draw)}
                                 style={{

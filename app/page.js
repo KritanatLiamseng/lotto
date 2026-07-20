@@ -42,7 +42,8 @@ export default function Home() {
     hanoi: hanoiLottoHistory
   });
 
-  // Syncing States
+  // Syncing States & Admin States
+  const [isAdminMode, setIsAdminMode] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncLogs, setSyncLogs] = useState([]);
   const [showSyncModal, setShowSyncModal] = useState(false);
@@ -469,6 +470,57 @@ export default function Home() {
     setTimeout(() => setNotification(''), 4000);
   };
 
+  // Export Backup Database JSON
+  const handleExportBackup = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(databases, null, 2));
+    const downloadAnchor = document.createElement('a');
+    const todayStr = new Date().toISOString().slice(0, 10);
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `lottooracle_backup_${todayStr}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    setNotification('💾 สำรองข้อมูลฐานข้อมูลหวยทั้งหมดออกเป็นไฟล์ JSON สำเร็จ!');
+    setTimeout(() => setNotification(''), 4000);
+  };
+
+  // Import Backup Database JSON
+  const handleImportBackup = (event) => {
+    const fileReader = new FileReader();
+    if (event.target.files && event.target.files[0]) {
+      fileReader.readAsText(event.target.files[0], "UTF-8");
+      fileReader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed && parsed.thai && parsed.lao && parsed.hanoi) {
+            setDatabases(parsed);
+            localStorage.setItem('lottooracle_db', JSON.stringify(parsed));
+            setNotification('📥 นำเข้าไฟล์ฐานข้อมูล JSON และอัปเดตสถิติเรียบร้อยแล้ว!');
+          } else {
+            alert('❌ รูปแบบไฟล์ JSON ไม่ถูกต้องสำหรับระบบ LottoOracle');
+          }
+        } catch (err) {
+          alert('❌ เกิดข้อผิดพลาดในการอ่านไฟล์ JSON');
+        }
+      };
+    }
+  };
+
+  // Reset Database to Baseline
+  const handleResetDatabase = () => {
+    if (confirm('⚠️ คุณต้องการรีเซ็ตฐานข้อมูลสถิติกลับเป็นค่าเริ่มต้นทางการหรือไม่?')) {
+      const defaultDbs = {
+        thai: lottoHistory,
+        lao: laoLottoHistory,
+        hanoi: hanoiLottoHistory
+      };
+      setDatabases(defaultDbs);
+      localStorage.setItem('lottooracle_db', JSON.stringify(defaultDbs));
+      setNotification('🔄 รีเซ็ตฐานข้อมูลทั้งหมดกลับเป็นค่าเริ่มต้นสำเร็จ!');
+      setTimeout(() => setNotification(''), 4000);
+    }
+  };
+
   const activeData = databases[activeLotto];
   // Extract sub-draws based on selected active sub-lotto
   const subDataForPredictor = getSubDrawsOnly(activeData, activeLotto, activeSubLotto);
@@ -611,8 +663,25 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Live sync actions */}
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        {/* Live sync & Database actions */}
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setIsAdminMode(!isAdminMode)}
+            className="tab-btn"
+            style={{
+              padding: '8px 14px',
+              fontSize: '12px',
+              border: `1px solid ${isAdminMode ? 'var(--gold)' : 'var(--border-card)'}`,
+              background: isAdminMode ? 'rgba(255, 215, 0, 0.12)' : 'rgba(255,255,255,0.03)',
+              color: isAdminMode ? 'var(--gold)' : '#FFF',
+              borderRadius: '30px',
+              fontWeight: 'bold',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            {isAdminMode ? '🔓 แอดมิน: เปิด' : '🔐 แอดมิน: ปิด'}
+          </button>
+
           <button
             onClick={handleSync}
             className="tab-btn"
@@ -625,7 +694,7 @@ export default function Home() {
               borderRadius: '30px'
             }}
           >
-            🔄 เช็คผลรางวัล (Live Sync)
+            🔄 เช็คผล (Live Sync)
           </button>
           
           <div className="draw-badge" style={{
@@ -692,7 +761,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Sync Status / Live Draw Simulation Panel */}
+      {/* Sync Status / Live Draw Simulation & Backup Tools Panel */}
       <div className="glass-card" style={{
         marginBottom: '32px',
         background: 'rgba(255,255,255,0.02)',
@@ -704,28 +773,85 @@ export default function Home() {
         gap: '16px'
       }}>
         <div>
-          <h4 style={{ fontSize: '14px', color: '#FFF' }}>⚙️ แผงควบคุมระบบจำลองออกผลหวยเรียลไทม์ (Live Engine Dev Tools)</h4>
+          <h4 style={{ fontSize: '14px', color: '#FFF' }}>⚙️ เครื่องมือผู้ดูแลและสำรองฐานข้อมูล (Database & Admin Tools)</h4>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-            จำลองดึงผลสลากออกจริงของวันสุ่มตัวเลขทุกรอบย่อย และปรับแต่งระบบ AI ทันที
+            จำลองออกผลรางวัล, สำรอง/นำเข้าไฟล์ JSON และจัดการโหมดแอดมินแก้ไขประวัติ
           </p>
         </div>
-        <button
-          onClick={handleSimulateDraw}
-          className="btn-primary"
-          style={{
-            padding: '10px 18px',
-            fontSize: '14px',
-            background: activeLotto === 'thai' 
-              ? 'linear-gradient(135deg, var(--gold) 0%, #FFA500 100%)' 
-              : activeLotto === 'lao' 
-              ? 'linear-gradient(135deg, #00E5FF 0%, #0077FF 100%)' 
-              : 'linear-gradient(135deg, #FF007F 0%, #FF0000 100%)',
-            color: activeLotto === 'thai' ? '#000' : '#FFF',
-            boxShadow: 'none'
-          }}
-        >
-          ⚡ จำลองการออกผลรางวัลวันนี้
-        </button>
+
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            onClick={handleExportBackup}
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid var(--border-card)',
+              color: '#FFF',
+              padding: '8px 14px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '12px'
+            }}
+            title="ดาวน์โหลดไฟล์ JSON สำรองข้อมูลสถิติ"
+          >
+            💾 สำรองข้อมูล (Backup)
+          </button>
+
+          <label
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid var(--border-card)',
+              color: '#FFF',
+              padding: '8px 14px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '12px'
+            }}
+            title="เลือกไฟล์ JSON เพื่อนำเข้าข้อมูล"
+          >
+            📥 นำเข้าข้อมูล (Import)
+            <input 
+              type="file" 
+              accept=".json" 
+              onChange={handleImportBackup} 
+              style={{ display: 'none' }} 
+            />
+          </label>
+
+          <button
+            onClick={handleResetDatabase}
+            style={{
+              background: 'rgba(255,0,0,0.08)',
+              border: '1px solid rgba(255,0,0,0.3)',
+              color: '#FF5555',
+              padding: '8px 14px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '12px'
+            }}
+            title="รีเซ็ตฐานข้อมูลเป็นค่าเริ่มต้น"
+          >
+            🔄 รีเซ็ต DB
+          </button>
+
+          <button
+            onClick={handleSimulateDraw}
+            className="btn-primary"
+            style={{
+              padding: '8px 14px',
+              fontSize: '12px',
+              background: activeLotto === 'thai' 
+                ? 'linear-gradient(135deg, var(--gold) 0%, #FFA500 100%)' 
+                : activeLotto === 'lao' 
+                ? 'linear-gradient(135deg, #0077FF 0%, #00E5FF 100%)' 
+                : 'linear-gradient(135deg, #FF007F 0%, #FF5500 100%)',
+              color: activeLotto === 'thai' ? '#000' : '#FFF',
+              border: 'none',
+              borderRadius: '8px'
+            }}
+          >
+            🎰 จำลองออกสลากวันนี้
+          </button>
+        </div>
       </div>
 
       {/* Tab Navigation Menu */}
@@ -795,7 +921,15 @@ export default function Home() {
       {/* Main Dynamic Content Display */}
       <main style={{ minHeight: '500px', marginBottom: '40px' }}>
         {activeTab === 'predictor' && <LottoPredictor lottoType={activeLotto} lottoData={subDataForPredictor} />}
-        {activeTab === 'history' && <LottoHistory lottoType={activeLotto} lottoData={activeData} onUpdateDraw={handleUpdateDraw} />}
+        {activeTab === 'history' && (
+          <LottoHistory 
+            lottoType={activeLotto} 
+            lottoData={activeData} 
+            onUpdateDraw={handleUpdateDraw} 
+            isAdminMode={isAdminMode}
+            onToggleAdmin={setIsAdminMode}
+          />
+        )}
         {activeTab === 'performance' && <AIPerformance lottoType={activeLotto} lottoData={activeData} activeSubLotto={activeSubLotto} />}
         {activeTab === 'generator' && <LuckyGenerator lottoType={activeLotto} />}
         {activeTab === 'famous' && <FamousNumbers lottoType={activeLotto} />}
