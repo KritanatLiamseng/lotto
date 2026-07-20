@@ -411,6 +411,12 @@ export const lottoHistory = [
 // Lao Development Lottery History with nested sub-draws (Star, Development, Samakkee)
 export const laoLottoHistory = [
   {
+    date: "18 กรกฎาคม 2569",
+    star: { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: "3891", twoDigitBack: "91", threeDigitBack: "891" },
+    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "1984", twoDigitBack: "84", threeDigitBack: "984", status: "official" },
+    samakkee: { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: "4920", twoDigitBack: "20", threeDigitBack: "920" }
+  },
+  {
     date: "17 กรกฎาคม 2569",
     star: { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: "7204", twoDigitBack: "04", threeDigitBack: "204" },
     development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "4604", twoDigitBack: "04", threeDigitBack: "604", status: "official" },
@@ -487,40 +493,52 @@ export const laoLottoHistory = [
 // Hanoi Lottery History with nested sub-draws (Special, Normal, VIP)
 export const hanoiLottoHistory = [
   {
+    date: "19 กรกฎาคม 2569",
+    special: { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: "8055", twoDigitBack: "55", threeDigitBack: "055", status: "official" },
+    normal: { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: "6438", twoDigitBack: "38", threeDigitBack: "438", status: "official" },
+    vip: { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: "9043", twoDigitBack: "43", threeDigitBack: "043", status: "official" }
+  },
+  {
+    date: "18 กรกฎาคม 2569",
+    special: { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: "0650", twoDigitBack: "50", threeDigitBack: "650", status: "official" },
+    normal: { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: "6890", twoDigitBack: "90", threeDigitBack: "890", status: "official" },
+    vip: { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: "4435", twoDigitBack: "35", threeDigitBack: "435", status: "official" }
+  },
+  {
     date: "15 กรกฎาคม 2569",
-    special: { name: "ฮานอยพิเศษ", time: "17:30 น.", firstPrize: "84102", twoDigitBack: "02", threeDigitBack: "102" },
-    normal: { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: "28405", twoDigitBack: "05", threeDigitBack: "405" },
-    vip: { name: "ฮานอย VIP", time: "19:30 น.", firstPrize: "91847", twoDigitBack: "47", threeDigitBack: "847" }
+    special: { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: "84102", twoDigitBack: "02", threeDigitBack: "102", status: "official" },
+    normal: { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: "28405", twoDigitBack: "05", threeDigitBack: "405", status: "official" },
+    vip: { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: "91847", twoDigitBack: "47", threeDigitBack: "847", status: "official" }
   },
   {
     date: "14 กรกฎาคม 2569",
-    special: { name: "ฮานอยพิเศษ", time: "17:30 น.", firstPrize: "39201", twoDigitBack: "01", threeDigitBack: "201" },
-    normal: { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: "95182", twoDigitBack: "82", threeDigitBack: "182" },
-    vip: { name: "ฮานอย VIP", time: "19:30 น.", firstPrize: "50293", twoDigitBack: "93", threeDigitBack: "293" }
+    special: { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: "39201", twoDigitBack: "01", threeDigitBack: "201", status: "official" },
+    normal: { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: "95182", twoDigitBack: "82", threeDigitBack: "182", status: "official" },
+    vip: { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: "50293", twoDigitBack: "93", threeDigitBack: "293", status: "official" }
   },
   {
     date: "13 กรกฎาคม 2569",
-    special: { name: "ฮานอยพิเศษ", time: "17:30 น.", firstPrize: "42010", twoDigitBack: "10", threeDigitBack: "010" },
-    normal: { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: "73057", twoDigitBack: "57", threeDigitBack: "057" },
-    vip: { name: "ฮานอย VIP", time: "19:30 น.", firstPrize: "14922", twoDigitBack: "22", threeDigitBack: "922" }
+    special: { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: "42010", twoDigitBack: "10", threeDigitBack: "010", status: "official" },
+    normal: { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: "73057", twoDigitBack: "57", threeDigitBack: "057", status: "official" },
+    vip: { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: "14922", twoDigitBack: "22", threeDigitBack: "922", status: "official" }
   },
   {
     date: "12 กรกฎาคม 2569",
-    special: { name: "ฮานอยพิเศษ", time: "17:30 น.", firstPrize: "53018", twoDigitBack: "18", threeDigitBack: "018" },
-    normal: { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: "61494", twoDigitBack: "94", threeDigitBack: "494" },
-    vip: { name: "ฮานอย VIP", time: "19:30 น.", firstPrize: "70483", twoDigitBack: "83", threeDigitBack: "483" }
+    special: { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: "53018", twoDigitBack: "18", threeDigitBack: "018", status: "official" },
+    normal: { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: "61494", twoDigitBack: "94", threeDigitBack: "494", status: "official" },
+    vip: { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: "70483", twoDigitBack: "83", threeDigitBack: "483", status: "official" }
   },
   {
     date: "11 กรกฎาคม 2569",
-    special: { name: "ฮานอยพิเศษ", time: "17:30 น.", firstPrize: "90234", twoDigitBack: "34", threeDigitBack: "234" },
-    normal: { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: "89263", twoDigitBack: "63", threeDigitBack: "263" },
-    vip: { name: "ฮานอย VIP", time: "19:30 น.", firstPrize: "25410", twoDigitBack: "10", threeDigitBack: "410" }
+    special: { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: "90234", twoDigitBack: "34", threeDigitBack: "234", status: "official" },
+    normal: { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: "89263", twoDigitBack: "63", threeDigitBack: "263", status: "official" },
+    vip: { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: "25410", twoDigitBack: "10", threeDigitBack: "410", status: "official" }
   },
   {
     date: "10 กรกฎาคม 2569",
-    special: { name: "ฮานอยพิเศษ", time: "17:30 น.", firstPrize: "81204", twoDigitBack: "04", threeDigitBack: "204" },
-    normal: { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: "10872", twoDigitBack: "72", threeDigitBack: "872" },
-    vip: { name: "ฮานอย VIP", time: "19:30 น.", firstPrize: "30514", twoDigitBack: "14", threeDigitBack: "514" }
+    special: { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: "81204", twoDigitBack: "04", threeDigitBack: "204", status: "official" },
+    normal: { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: "10872", twoDigitBack: "72", threeDigitBack: "872", status: "official" },
+    vip: { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: "30514", twoDigitBack: "14", threeDigitBack: "514", status: "official" }
   }
 ];
 
@@ -721,13 +739,32 @@ export function getPredictionStats(history = []) {
   const sumArith = arithmeticScores.reduce((a, b) => a + b, 0);
   const normalizedArithmetic = arithmeticScores.map(val => val / (sumArith || 1));
 
-  // --- SELF-TUNING WEIGHT OPTIMIZATION ENGINE (LOCAL BACKTEST GRID SEARCH v2) ---
+  // --- LAYER 7: DIGIT PAIR INTERVAL & MODULO CORRELATION ---
+  const moduloCounts = Array(10).fill(0);
+  for (let i = 0; i < posLimit; i++) {
+    const d = history[i].twoDigitBack;
+    if (d && d.length === 2) {
+      const w = Math.pow(0.88, i);
+      const diff = Math.abs(parseInt(d[0]) - parseInt(d[1]));
+      const mod = diff % 5;
+      for (let digit = 0; digit < 10; digit++) {
+        if (digit % 5 === mod) {
+          moduloCounts[digit] += w;
+        }
+      }
+    }
+  }
+  const sumMod = moduloCounts.reduce((a, b) => a + b, 0);
+  const normalizedModulo = moduloCounts.map(val => val / (sumMod || 1));
+
+  // --- SELF-TUNING WEIGHT OPTIMIZATION ENGINE (LOCAL BACKTEST GRID SEARCH v3) ---
   const configurations = [
-    { name: "Agent A (Recency Heavy)", wRec: 0.40, wCo: 0.10, wOvd: 0.10, wMrk: 0.15, wPos: 0.15, wAr: 0.10 },
-    { name: "Agent B (Markov Heavy)", wRec: 0.20, wCo: 0.10, wOvd: 0.10, wMrk: 0.40, wPos: 0.10, wAr: 0.10 },
-    { name: "Agent C (Mean Reversion Heavy)", wRec: 0.15, wCo: 0.10, wOvd: 0.45, wMrk: 0.10, wPos: 0.10, wAr: 0.10 },
-    { name: "Agent D (Positional Heavy)", wRec: 0.20, wCo: 0.10, wOvd: 0.10, wMrk: 0.10, wPos: 0.40, wAr: 0.10 },
-    { name: "Agent E (Arithmetic Sum Heavy)", wRec: 0.15, wCo: 0.10, wOvd: 0.10, wMrk: 0.10, wPos: 0.15, wAr: 0.40 }
+    { name: "Agent A (Recency Heavy)", wRec: 0.35, wCo: 0.10, wOvd: 0.10, wMrk: 0.15, wPos: 0.10, wAr: 0.10, wMod: 0.10 },
+    { name: "Agent B (Markov Heavy)", wRec: 0.15, wCo: 0.10, wOvd: 0.10, wMrk: 0.35, wPos: 0.10, wAr: 0.10, wMod: 0.10 },
+    { name: "Agent C (Mean Reversion Heavy)", wRec: 0.10, wCo: 0.10, wOvd: 0.40, wMrk: 0.10, wPos: 0.10, wAr: 0.10, wMod: 0.10 },
+    { name: "Agent D (Positional Heavy)", wRec: 0.15, wCo: 0.10, wOvd: 0.10, wMrk: 0.10, wPos: 0.35, wAr: 0.10, wMod: 0.10 },
+    { name: "Agent E (Arithmetic Sum Heavy)", wRec: 0.10, wCo: 0.10, wOvd: 0.10, wMrk: 0.10, wPos: 0.10, wAr: 0.40, wMod: 0.10 },
+    { name: "Agent F (Modulo Interval Heavy)", wRec: 0.10, wCo: 0.10, wOvd: 0.10, wMrk: 0.10, wPos: 0.10, wAr: 0.10, wMod: 0.40 }
   ];
 
   const getCombinedScores = (c) => {
@@ -739,7 +776,8 @@ export function getPredictionStats(history = []) {
         (overdueScores[d] * c.wOvd) + 
         (normalizedMarkov[d] * c.wMrk) +
         (normalizedPositional[d] * c.wPos) +
-        (normalizedArithmetic[d] * c.wAr)
+        (normalizedArithmetic[d] * c.wAr) +
+        (normalizedModulo[d] * c.wMod)
       );
     }
     return scores;
@@ -748,10 +786,10 @@ export function getPredictionStats(history = []) {
   let bestConfig = configurations[0];
   let maxHits = -1;
 
-  // Backtest config agents over the last 8 draws to choose the best weights
+  // Backtest config agents over the last 10 draws to choose the best weights
   configurations.forEach(config => {
     let hits = 0;
-    const backtestLimit = Math.min(history.length - 2, 8);
+    const backtestLimit = Math.min(history.length - 2, 10);
     for (let b = 1; b <= backtestLimit; b++) {
       const precedingData = history.slice(b + 1);
       if (precedingData.length < 3) continue;
