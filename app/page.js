@@ -10,7 +10,7 @@ import AIPerformance from './components/AIPerformance';
 // Baseline data
 import { lottoHistory, laoLottoHistory, hanoiLottoHistory, getSubDrawsOnly } from './data/lottoHistory';
 
-const DB_VERSION = 'v2026_07_21_v5';
+const DB_VERSION = 'v2026_07_21_v6';
 
 const monthsThai = [
   "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
@@ -70,16 +70,20 @@ export default function Home() {
           const parsed = JSON.parse(persisted);
           if (parsed.thai && parsed.lao && parsed.hanoi) {
             const mergeDb = (baselineList, persistedList) => {
-              const merged = [...baselineList];
+              const mergedMap = new Map();
+              // 1. Load official baseline items first (real draw results)
+              baselineList.forEach(item => mergedMap.set(item.date, item));
+
+              // 2. Incorporate persisted items only if date is missing in baseline OR marked custom by admin
               persistedList.forEach(pItem => {
-                const existingIdx = merged.findIndex(bItem => bItem.date === pItem.date);
-                if (existingIdx === -1) {
-                  merged.push(pItem);
-                } else if (pItem.status === 'official' || pItem.isCustom) {
-                  merged[existingIdx] = pItem;
+                if (!mergedMap.has(pItem.date)) {
+                  mergedMap.set(pItem.date, pItem);
+                } else if (pItem.isCustom) {
+                  mergedMap.set(pItem.date, pItem);
                 }
               });
-              return merged.sort((a, b) => {
+
+              return Array.from(mergedMap.values()).sort((a, b) => {
                 const dateA = parseThaiDate(a.date);
                 const dateB = parseThaiDate(b.date);
                 if (!dateA) return 1;
@@ -475,7 +479,8 @@ export default function Home() {
       
       currentList[idx] = {
         ...currentList[idx],
-        ...updatedDrawData
+        ...updatedDrawData,
+        isCustom: true
       };
       
       return {
