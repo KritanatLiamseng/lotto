@@ -4,31 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { getPredictionStats, getOddEvenRatio, getHighLowRatio, getDigitStats, getGlobalAccuracy } from '../data/lottoHistory';
 
 export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
-  const [predictions, setPredictions] = useState([]);
-  const [oddEven, setOddEven] = useState({ odd: 50, even: 50 });
-  const [highLow, setHighLow] = useState({ high: 50, low: 50 });
-  const [digitStats, setDigitStats] = useState([]);
-  const [globalAccuracy, setGlobalAccuracy] = useState(0);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    // Load stats dynamically using the passed prop data
-    setPredictions(getPredictionStats(lottoData));
-    setOddEven(getOddEvenRatio(lottoData));
-    setHighLow(getHighLowRatio(lottoData));
-    setDigitStats(getDigitStats(lottoData).sort((a, b) => b.count - a.count));
-    setGlobalAccuracy(getGlobalAccuracy(lottoData));
-    setLoading(false);
-  }, [lottoData, lottoType]);
-
-  if (loading) {
-    return (
-      <div style={{ color: 'var(--primary)', textAlign: 'center', padding: '50px' }}>
-        กำลังประมวลผลระบบสถิติ AI ของ {lottoType === 'lao' ? 'หวยลาวพัฒนา' : lottoType === 'hanoi' ? 'หวยฮานอย' : 'หวยไทย'}...
-      </div>
-    );
-  }
+  // Synchronous calculation via useMemo - Zero delay, 100% reactive to prop updates
+  const predictions = React.useMemo(() => getPredictionStats(lottoData), [lottoData]);
+  const oddEven = React.useMemo(() => getOddEvenRatio(lottoData), [lottoData]);
+  const highLow = React.useMemo(() => getHighLowRatio(lottoData), [lottoData]);
+  const digitStats = React.useMemo(() => getDigitStats(lottoData).sort((a, b) => b.count - a.count), [lottoData]);
+  const globalAccuracy = React.useMemo(() => getGlobalAccuracy(lottoData), [lottoData]);
 
   // Theme configuration based on active lottery type
   const getThemeColors = () => {
