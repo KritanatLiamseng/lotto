@@ -569,27 +569,36 @@ export const hanoiLottoHistory = [
 // Helper to filter sub-draws for calculations based on active selection (e.g. Star, VIP, Special, Normal)
 export function getSubDrawsOnly(history = [], lottoType = 'thai', subKey = 'default') {
   const list = [];
+  let validKey = subKey;
+  if (lottoType === 'lao') {
+    if (!['star', 'development', 'samakkee'].includes(subKey)) {
+      validKey = 'development';
+    }
+  } else if (lottoType === 'hanoi') {
+    if (!['special', 'normal', 'vip'].includes(subKey)) {
+      validKey = 'normal';
+    }
+  }
+
   history.forEach(item => {
     if (lottoType === 'thai') {
       list.push(item);
     } else if (lottoType === 'lao') {
-      const key = subKey === 'default' ? 'development' : subKey;
-      if (item[key] && !item[key].isSimulated) {
+      if (item[validKey] && !item[validKey].isSimulated) {
         list.push({
           date: item.date,
-          firstPrize: item[key].firstPrize,
-          twoDigitBack: item[key].twoDigitBack,
-          threeDigitBack: item[key].threeDigitBack
+          firstPrize: item[validKey].firstPrize,
+          twoDigitBack: item[validKey].twoDigitBack,
+          threeDigitBack: item[validKey].threeDigitBack
         });
       }
     } else if (lottoType === 'hanoi') {
-      const key = subKey === 'default' ? 'normal' : subKey;
-      if (item[key] && !item[key].isSimulated) {
+      if (item[validKey] && !item[validKey].isSimulated) {
         list.push({
           date: item.date,
-          firstPrize: item[key].firstPrize,
-          twoDigitBack: item[key].twoDigitBack,
-          threeDigitBack: item[key].threeDigitBack
+          firstPrize: item[validKey].firstPrize,
+          twoDigitBack: item[validKey].twoDigitBack,
+          threeDigitBack: item[validKey].threeDigitBack
         });
       }
     }
