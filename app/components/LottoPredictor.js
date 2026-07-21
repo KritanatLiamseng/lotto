@@ -122,16 +122,16 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
             <div style={{ flex: 1, minWidth: '200px' }}>
               <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>🔵 เลขเด่นวิ่งรูด (วิ่ง บน-ล่าง)</div>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <span className={`number-ball ${theme.accentBall}`} style={{ width: '64px', height: '64px', fontSize: '28px' }}>{topDigits[0]}</span>
-                <span className="number-ball magenta-ball" style={{ width: '64px', height: '64px', fontSize: '28px' }}>{topDigits[1]}</span>
+                <span className={`number-ball ${theme.accentBall} predictor-ball-lg`}>{topDigits[0]}</span>
+                <span className="number-ball magenta-ball predictor-ball-lg">{topDigits[1]}</span>
               </div>
             </div>
             
-            <div style={{ flex: 2, minWidth: '250px' }}>
+            <div style={{ flex: 2, minWidth: '220px' }}>
               <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>🟣 เจาะเลขท้าย 2 ตัวแนะนำ</div>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 {recommendedTwoDigits.map((num, i) => (
-                  <span key={i} className="number-ball cyan-ball" style={{ width: '54px', height: '54px', fontSize: '20px', margin: 0 }}>
+                  <span key={i} className="number-ball cyan-ball predictor-ball-md" style={{ margin: 0 }}>
                     {num}
                   </span>
                 ))}
@@ -143,7 +143,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
             <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>🟢 ชุดเลขท้าย 3 ตัวเต็ง-โต๊ด</div>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               {recommendedThreeDigits.map((num, i) => (
-                <span key={i} className={`number-ball ${theme.accentBall}`} style={{ borderRadius: '14px', width: '76px', height: '48px', fontSize: '20px', margin: 0 }}>
+                <span key={i} className={`number-ball ${theme.accentBall} predictor-ball-3d`} style={{ margin: 0 }}>
                   {num}
                 </span>
               ))}

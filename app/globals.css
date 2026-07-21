@@ -414,70 +414,123 @@ h1, h2, h3, h4, h5, h6 {
   background: rgba(255, 255, 255, 0.2);
 }
 
+/* Predictor Ball Sizes with Fluid Mobile Responsiveness */
+.predictor-ball-lg {
+  width: 60px;
+  height: 60px;
+  font-size: 26px;
+}
+
+.predictor-ball-md {
+  width: 52px;
+  height: 52px;
+  font-size: 19px;
+}
+
+.predictor-ball-3d {
+  width: 76px;
+  height: 46px;
+  font-size: 19px;
+  border-radius: 14px;
+}
+
 /* Mobile & Tablet Responsive Optimizations */
+@media (max-width: 968px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
 @media (max-width: 768px) {
+  .container {
+    padding: 16px 12px;
+  }
+
   .header {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 20px;
-    padding-bottom: 24px;
-  }
-  
-  .header > div {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    gap: 16px;
+    padding-bottom: 20px;
+    margin-bottom: 24px;
   }
 
   .logo-container {
     flex-direction: column;
+    text-align: center;
+    gap: 6px;
+  }
+
+  .logo-text {
+    font-size: 24px;
+  }
+
+  .nav-tabs, .tabs-nav {
     gap: 8px;
-  }
-  
-  .tabs-nav {
-    gap: 4px;
-    padding: 4px;
-    border-radius: 10px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  .tabs-nav::-webkit-scrollbar {
-    display: none; /* Hide scrollbar in navigation tab bar */
+    padding: 6px 8px;
+    border-radius: 12px;
+    margin-bottom: 20px;
   }
 
   .tab-btn {
     padding: 8px 14px;
-    font-size: 14px;
-    border-radius: 8px;
-  }
-  
-  .lotto-table th {
-    padding: 12px 8px;
     font-size: 13px;
-  }
-  
-  .lotto-table td {
-    padding: 14px 8px;
-    font-size: 13px;
-  }
-
-  .number-ball {
-    width: 36px;
-    height: 36px;
-    font-size: 15px;
-  }
-}
-
-@media (max-width: 600px) {
-  .container {
-    padding: 16px 10px;
   }
 
   .glass-card {
-    padding: 16px;
+    padding: 18px 14px;
     border-radius: 16px;
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -14px;
+    padding: 0 14px;
+  }
+
+  .lotto-table {
+    min-width: 640px; /* Guarantees table columns never collide or stack on mobile screens */
+  }
+
+  .lotto-table th, .lotto-table td {
+    white-space: nowrap;
+    padding: 12px 10px;
+    font-size: 13px;
+  }
+
+  .predictor-ball-lg {
+    width: 52px;
+    height: 52px;
+    font-size: 22px;
+  }
+
+  .predictor-ball-md {
+    width: 46px;
+    height: 46px;
+    font-size: 17px;
+  }
+
+  .predictor-ball-3d {
+    width: 68px;
+    height: 42px;
+    font-size: 17px;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 12px 8px;
+  }
+
+  .logo-text {
+    font-size: 22px;
+  }
+
+  .glass-card {
+    padding: 14px 10px;
   }
 
   .search-bar {
@@ -489,9 +542,28 @@ h1, h2, h3, h4, h5, h6 {
     width: 100%;
     padding: 12px;
   }
-  
-  .table-wrapper {
-    margin: 0 -16px;
-    padding: 0 16px;
+
+  .lotto-table th, .lotto-table td {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  .predictor-ball-lg {
+    width: 46px;
+    height: 46px;
+    font-size: 20px;
+  }
+
+  .predictor-ball-md {
+    width: 42px;
+    height: 42px;
+    font-size: 15px;
+  }
+
+  .predictor-ball-3d {
+    width: 60px;
+    height: 38px;
+    font-size: 15px;
+    border-radius: 10px;
   }
 }
