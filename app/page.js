@@ -10,6 +10,8 @@ import AIPerformance from './components/AIPerformance';
 // Baseline data
 import { lottoHistory, laoLottoHistory, hanoiLottoHistory, getSubDrawsOnly } from './data/lottoHistory';
 
+const DB_VERSION = 'v2026_07_21_v4';
+
 const monthsThai = [
   "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
   "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
@@ -49,34 +51,49 @@ export default function Home() {
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [notification, setNotification] = useState('');
 
-  // Load persisted database on mount and merge with official baseline data
+  // Load persisted database on mount with automatic cache invalidation
   React.useEffect(() => {
     try {
-      const persisted = localStorage.getItem('lottooracle_db');
-      if (persisted) {
-        const parsed = JSON.parse(persisted);
-        if (parsed.thai && parsed.lao && parsed.hanoi) {
-          const mergeDb = (baselineList, persistedList) => {
-            const merged = [...baselineList];
-            persistedList.forEach(pItem => {
-              if (!merged.some(bItem => bItem.date === pItem.date)) {
-                merged.push(pItem);
-              }
-            });
-            return merged.sort((a, b) => {
-              const dateA = parseThaiDate(a.date);
-              const dateB = parseThaiDate(b.date);
-              if (!dateA) return 1;
-              if (!dateB) return -1;
-              return dateB - dateA;
-            });
-          };
+      const storedVer = localStorage.getItem('lottooracle_db_ver');
+      if (storedVer !== DB_VERSION) {
+        // Clear outdated cache from previous sessions on mobile/desktop
+        localStorage.removeItem('lottooracle_db');
+        localStorage.setItem('lottooracle_db_ver', DB_VERSION);
+        setDatabases({
+          thai: lottoHistory,
+          lao: laoLottoHistory,
+          hanoi: hanoiLottoHistory
+        });
+      } else {
+        const persisted = localStorage.getItem('lottooracle_db');
+        if (persisted) {
+          const parsed = JSON.parse(persisted);
+          if (parsed.thai && parsed.lao && parsed.hanoi) {
+            const mergeDb = (baselineList, persistedList) => {
+              const merged = [...baselineList];
+              persistedList.forEach(pItem => {
+                const existingIdx = merged.findIndex(bItem => bItem.date === pItem.date);
+                if (existingIdx === -1) {
+                  merged.push(pItem);
+                } else if (pItem.status === 'official' || pItem.isCustom) {
+                  merged[existingIdx] = pItem;
+                }
+              });
+              return merged.sort((a, b) => {
+                const dateA = parseThaiDate(a.date);
+                const dateB = parseThaiDate(b.date);
+                if (!dateA) return 1;
+                if (!dateB) return -1;
+                return dateB - dateA;
+              });
+            };
 
-          setDatabases({
-            thai: mergeDb(lottoHistory, parsed.thai),
-            lao: mergeDb(laoLottoHistory, parsed.lao),
-            hanoi: mergeDb(hanoiLottoHistory, parsed.hanoi)
-          });
+            setDatabases({
+              thai: mergeDb(lottoHistory, parsed.thai),
+              lao: mergeDb(laoLottoHistory, parsed.lao),
+              hanoi: mergeDb(hanoiLottoHistory, parsed.hanoi)
+            });
+          }
         }
       }
     } catch (e) {
@@ -521,6 +538,26 @@ export default function Home() {
     }
   };
 
+  // Hard Force Reload & Clear Mobile Cache
+  const handleForceClearCache = () => {
+    try {
+      localStorage.clear();
+      localStorage.setItem('lottooracle_db_ver', DB_VERSION);
+      const defaultDbs = {
+        thai: lottoHistory,
+        lao: laoLottoHistory,
+        hanoi: hanoiLottoHistory
+      };
+      setDatabases(defaultDbs);
+      setNotification('🔄 ล้างแคชบราวเซอร์มือถือ และโหลดข้อมูลสถิติล่าสุดเรียบร้อยแล้ว!');
+      setTimeout(() => {
+        window.location.reload(true);
+      }, 1000);
+    } catch (e) {
+      window.location.reload();
+    }
+  };
+
   const activeData = databases[activeLotto];
   // Extract sub-draws based on selected active sub-lotto
   const subDataForPredictor = getSubDrawsOnly(activeData, activeLotto, activeSubLotto);
@@ -695,6 +732,22 @@ export default function Home() {
             }}
           >
             🔄 เช็คผล (Live Sync)
+          </button>
+
+          <button
+            onClick={handleForceClearCache}
+            className="tab-btn"
+            style={{
+              padding: '8px 12px',
+              fontSize: '12px',
+              border: '1px solid rgba(0, 229, 255, 0.3)',
+              background: 'rgba(0, 229, 255, 0.08)',
+              color: '#00E5FF',
+              borderRadius: '30px'
+            }}
+            title="ล้างแคชบราวเซอร์มือถือเพื่อโหลดผลหวยล่าสุด"
+          >
+            ⚡ ล้างแคชมือถือ
           </button>
           
           <div className="draw-badge" style={{
