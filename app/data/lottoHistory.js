@@ -411,6 +411,18 @@ export const lottoHistory = [
 // Lao Development Lottery History with nested sub-draws (Star, Development, Samakkee)
 export const laoLottoHistory = [
   {
+    date: "21 กรกฎาคม 2569",
+    star: { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: "2109", twoDigitBack: "09", threeDigitBack: "109" },
+    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "6592", twoDigitBack: "92", threeDigitBack: "592", status: "official" },
+    samakkee: { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: "5401", twoDigitBack: "01", threeDigitBack: "401" }
+  },
+  {
+    date: "20 กรกฎาคม 2569",
+    star: { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: "9420", twoDigitBack: "20", threeDigitBack: "420" },
+    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "9073", twoDigitBack: "73", threeDigitBack: "073", status: "official" },
+    samakkee: { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: "8192", twoDigitBack: "92", threeDigitBack: "192" }
+  },
+  {
     date: "18 กรกฎาคม 2569",
     star: { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: "3891", twoDigitBack: "91", threeDigitBack: "891" },
     development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "1984", twoDigitBack: "84", threeDigitBack: "984", status: "official" },
@@ -492,6 +504,18 @@ export const laoLottoHistory = [
 
 // Hanoi Lottery History with nested sub-draws (Special, Normal, VIP)
 export const hanoiLottoHistory = [
+  {
+    date: "21 กรกฎาคม 2569",
+    special: { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: "4584", twoDigitBack: "84", threeDigitBack: "584", status: "official" },
+    normal: { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: "3070", twoDigitBack: "70", threeDigitBack: "070", status: "official" },
+    vip: { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: "8214", twoDigitBack: "14", threeDigitBack: "214", status: "official" }
+  },
+  {
+    date: "20 กรกฎาคม 2569",
+    special: { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: "9886", twoDigitBack: "86", threeDigitBack: "886", status: "official" },
+    normal: { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: "9128", twoDigitBack: "28", threeDigitBack: "128", status: "official" },
+    vip: { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: "0538", twoDigitBack: "38", threeDigitBack: "538", status: "official" }
+  },
   {
     date: "19 กรกฎาคม 2569",
     special: { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: "8055", twoDigitBack: "55", threeDigitBack: "055", status: "official" },
