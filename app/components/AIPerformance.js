@@ -121,8 +121,10 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [], hist
 
           subDrawKeys.forEach(sub => {
             if (!draw[sub.key]) return;
-            const flatSubHistory = lottoData.map(item => item[sub.key]).filter(Boolean);
-            const subPastData = flatSubHistory.slice(parentIdx + 1);
+            const flatSubHistory = (effectiveData || []).map(item => item && item[sub.key]).filter(Boolean);
+            const subIdx = flatSubHistory.findIndex(s => s === draw[sub.key] || (s.firstPrize === draw[sub.key].firstPrize && s.twoDigitBack === draw[sub.key].twoDigitBack));
+            if (subIdx < 0 || subIdx >= flatSubHistory.length - 1) return;
+            const subPastData = flatSubHistory.slice(subIdx + 1);
             const subPredictions = getPredictionStats(subPastData);
             const subTopDigits = subPredictions.slice(0, 3).map(p => p.digit);
             const recs = getTwoDigitRecs(subTopDigits, subPredictions);
@@ -239,8 +241,10 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [], hist
 
           subDrawKeys.forEach(sub => {
             if (!draw[sub.key]) return;
-            const flatSubHistory = effectiveData.map(item => item[sub.key]).filter(Boolean);
-            const subPastData = flatSubHistory.slice(parentIdx + 1);
+            const flatSubHistory = (effectiveData || []).map(item => item && item[sub.key]).filter(Boolean);
+            const subIdx = flatSubHistory.findIndex(s => s === draw[sub.key] || (s.firstPrize === draw[sub.key].firstPrize && s.twoDigitBack === draw[sub.key].twoDigitBack));
+            if (subIdx < 0 || subIdx >= flatSubHistory.length - 1) return;
+            const subPastData = flatSubHistory.slice(subIdx + 1);
             const subPredictions = getPredictionStats(subPastData);
             const subTopDigits = subPredictions.slice(0, 3).map(p => p.digit);
             const recs = getThreeDigitRecs(subTopDigits);
