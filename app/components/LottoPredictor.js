@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { getPredictionStats, getOddEvenRatio, getHighLowRatio, getDigitStats, getGlobalAccuracy } from '../data/lottoHistory';
 
 export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
@@ -11,6 +11,8 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
   const digitStats = React.useMemo(() => getDigitStats(lottoData).sort((a, b) => b.count - a.count), [lottoData]);
   const globalAccuracy = React.useMemo(() => getGlobalAccuracy(lottoData), [lottoData]);
 
+  const [copySuccess, setCopySuccess] = useState(false);
+
   // Theme configuration based on active lottery type
   const getThemeColors = () => {
     switch (lottoType) {
@@ -20,7 +22,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
           accentBall: 'cyan-ball',
           accentText: '#00B0FF',
           borderLeft: '5px solid #00E5FF',
-          explanation: 'วิเคราะห์สถิติหวยลาวพัฒนา (ออกรางวัลเป็นประจำทุกวัน เวลา 20:30 น.)'
+          explanation: 'วิเคราะห์สถิติหวยลาว (ออกรางวัลตามเวลาทางการ)'
         };
       case 'hanoi':
         return {
@@ -28,7 +30,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
           accentBall: 'magenta-ball',
           accentText: '#FF3366',
           borderLeft: '5px solid #FF007F',
-          explanation: 'วิเคราะห์สถิติหวยฮานอยปกติ (ออกรางวัลทุกวัน เวลา 18:30 น.)'
+          explanation: 'วิเคราะห์สถิติหวยฮานอย (ออกรางวัลทุกวัน)'
         };
       case 'thai':
       default:
@@ -44,7 +46,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
 
   const theme = getThemeColors();
 
-  // Get recommended numbers (Deterministic & Consistent)
+  // Get recommended numbers
   const topDigits = predictions.slice(0, 5).map(p => p.digit);
   const recommendedTwoDigits = [
     `${topDigits[0]}${topDigits[1]}`,
@@ -58,6 +60,20 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
     `${topDigits[3]}${topDigits[0]}${topDigits[1]}`,
     `${topDigits[4]}${topDigits[0]}${topDigits[2]}`
   ];
+
+  const handleCopyNumbers = () => {
+    const textToCopy = `🔮 [LottoOracle AI] เลขเด็ดวิเคราะห์งวดถัดไป (${lottoType === 'lao' ? 'หวยลาว' : lottoType === 'hanoi' ? 'หวยฮานอย' : 'หวยไทย'})
+• วิ่ง/รูด: ${topDigits[0]}, ${topDigits[1]}
+• เจาะ 2 ตัว: ${recommendedTwoDigits.join(', ')}
+• ชุด 3 ตัว: ${recommendedThreeDigits.join(', ')}
+${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1]}${topDigits[2]}${predictions[3]?.digit || '9'}` : ''}
+⚡ ประมวลผลสดใหม่จากสถิติตัวจริง 100%`;
+
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 3000);
+    });
+  };
 
   return (
     <div className="dashboard-grid">
@@ -75,10 +91,36 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
               </span>
             )}
           </div>
+
+          {/* Quick 1-Tap Copy Button for Easy User Experience */}
+          <div style={{ marginBottom: '20px' }}>
+            <button
+              onClick={handleCopyNumbers}
+              style={{
+                width: '100%',
+                padding: '14px 20px',
+                borderRadius: '14px',
+                border: 'none',
+                background: copySuccess ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)' : 'linear-gradient(135deg, #00E5FF 0%, #0077FF 100%)',
+                color: '#FFFFFF',
+                fontWeight: 'bold',
+                fontSize: '16px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 15px rgba(0, 229, 255, 0.3)',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              {copySuccess ? '✅ คัดลอกแล้ว! นำไปวางส่งในแชทได้ทันที' : '📋 กดคัดลอกชุดเลขเด็ดนี้ไปใช้งาน (1-Tap Copy)'}
+            </button>
+          </div>
           
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', margin: '24px 0', alignItems: 'center' }}>
             <div style={{ flex: 1, minWidth: '200px' }}>
-              <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>เลขเด่นวิ่งรูด (วิ่ง บน-ล่าง)</div>
+              <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>🔵 เลขเด่นวิ่งรูด (วิ่ง บน-ล่าง)</div>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <span className={`number-ball ${theme.accentBall}`} style={{ width: '60px', height: '60px', fontSize: '26px' }}>{topDigits[0]}</span>
                 <span className="number-ball magenta-ball" style={{ width: '60px', height: '60px', fontSize: '26px', background: lottoType === 'hanoi' ? 'radial-gradient(circle at 30% 30%, #FFF5CC 0%, var(--gold) 40%, #B8860B 100%)' : undefined, color: lottoType === 'hanoi' ? '#000' : undefined }}>{topDigits[1]}</span>
@@ -86,7 +128,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
             </div>
             
             <div style={{ flex: 2, minWidth: '250px' }}>
-              <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>เจาะเลขท้าย 2 ตัวแนะนำ</div>
+              <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>🟣 เจาะเลขท้าย 2 ตัวแนะนำ</div>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 {recommendedTwoDigits.map((num, i) => (
                   <span key={i} className="number-ball cyan-ball" style={{ width: '50px', height: '50px', fontSize: '18px', margin: 0, background: lottoType === 'lao' ? 'radial-gradient(circle at 30% 30%, #F5D0FF 0%, var(--primary) 40%, #7A00B0 100%)' : undefined, color: lottoType === 'lao' ? '#FFF' : undefined }}>
@@ -98,7 +140,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>ชุดเลขท้าย 3 ตัวเต็ง-โต๊ด</div>
+            <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>🟢 ชุดเลขท้าย 3 ตัวเต็ง-โต๊ด</div>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               {recommendedThreeDigits.map((num, i) => (
                 <span key={i} className={`number-ball ${theme.accentBall}`} style={{ borderRadius: '12px', width: '70px', height: '46px', fontSize: '18px', margin: 0 }}>
@@ -110,7 +152,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
 
           {lottoType === 'lao' && (
             <div style={{ marginBottom: '16px' }}>
-              <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>ชุดเลขท้าย 4 ตัวพัฒนาแนะนำ</div>
+              <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>🟡 ชุดเลขท้าย 4 ตัวพัฒนาแนะนำ</div>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <span className="numbers-font" style={{ background: 'rgba(0,229,255,0.1)', border: '1px dashed #00E5FF', color: '#00E5FF', padding: '8px 16px', borderRadius: '10px', fontSize: '18px', fontWeight: 'bold', letterSpacing: '2px' }}>
                   {topDigits[0]}{topDigits[1]}{topDigits[2]}{predictions[3]?.digit || '9'}
@@ -119,8 +161,22 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
             </div>
           )}
 
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '8px', borderLeft: `3px solid ${theme.primary}` }}>
-            ⚠️ <strong>หมายเหตุระบบทำนาย:</strong> คำนวณแบบถ่วงน้ำหนักสถิติความถี่การออกเลข (Frequency Weight 60%) และเวลาที่ตัวเลขนั้นไม่ได้ออกย้อนหลัง (Due Weight 40%) {theme.explanation}
+          {/* Easy Beginner Guide Card */}
+          <div style={{
+            marginTop: '20px',
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            borderRadius: '12px',
+            padding: '14px 18px'
+          }}>
+            <h4 style={{ fontSize: '13px', color: theme.primary, margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              💡 วิธีนำเลขเด็ดไปใช้งานง่ายๆ สำหรับมือใหม่:
+            </h4>
+            <ul style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, paddingLeft: '18px', lineHeight: '1.8' }}>
+              <li><strong>วิ่ง-รูด:</strong> ใช้ลูกบอล 2 ลูกแรก ({topDigits[0]} และ {topDigits[1]}) เหมาะกับสายแทงวิ่งบน-ล่าง</li>
+              <li><strong>2 ตัวเน้น:</strong> นำชุด 2 ตัว ({recommendedTwoDigits[0]}, {recommendedTwoDigits[1]}) ไปเลือกเสี่ยงโชค 2 ตัวบน-ล่าง</li>
+              <li><strong>3 ตัวเต็งโต๊ด:</strong> นำชุด 3 ตัวไปแทง 3 ตัวบนหรือโต๊ดได้ทันที</li>
+            </ul>
           </div>
         </div>
 
@@ -128,62 +184,37 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
         <div className="glass-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <h2 style={{ fontSize: '20px', margin: 0 }}>
-              📊 กราฟวิเคราะห์พลังความน่าจะเป็น AI (0 - 9)
+              📊 กราฟวิเคราะห์พลังความน่าจะเป็น AI Super v4 (0 - 9)
             </h2>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.03)', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
-              เรียงตามน้ำหนัก Ensemble v2
+              ประมวลผลสดใหม่ 100%
             </span>
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {predictions.map((item, index) => {
               const barColor = lottoType === 'lao' 
-                ? `hsl(${180 - (index * 8)}, 100%, 50%)` 
-                : lottoType === 'hanoi' 
-                ? `hsl(${340 - (index * 10)}, 100%, 55%)`
-                : `hsl(${45 + (index * 12)}, 100%, 50%)`;
-
-              const rankBadge = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
-              const isTop3 = index < 3;
-
+                ? index < 3 ? 'linear-gradient(90deg, #00E5FF, #0077FF)' : 'rgba(0, 229, 255, 0.2)'
+                : lottoType === 'hanoi'
+                ? index < 3 ? 'linear-gradient(90deg, #FF007F, #FF0000)' : 'rgba(255, 0, 127, 0.2)'
+                : index < 3 ? 'linear-gradient(90deg, var(--gold), #FFA500)' : 'rgba(255, 215, 0, 0.2)';
+                
               return (
-                <div key={item.digit} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '14px',
-                  background: isTop3 ? 'rgba(255,255,255,0.02)' : 'transparent',
-                  padding: isTop3 ? '8px 12px' : '4px 0',
-                  borderRadius: '10px',
-                  border: isTop3 ? `1px solid ${barColor}33` : 'none'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '45px' }}>
-                    <span style={{ fontSize: '13px', width: '20px', textAlign: 'center' }}>{rankBadge}</span>
-                    <span className="numbers-font" style={{ fontSize: '22px', fontWeight: 'bold', color: isTop3 ? '#FFFFFF' : 'var(--text-muted)' }}>
-                      {item.digit}
-                    </span>
+                <div key={item.digit} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '30px', fontWeight: 'bold', fontSize: '16px', color: index < 3 ? theme.primary : 'inherit' }}>
+                    #{item.digit}
                   </div>
-
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                      <span style={{ color: isTop3 ? '#FFFFFF' : 'var(--text-muted)', fontWeight: isTop3 ? '500' : 'normal' }}>
-                        {item.lastSeen === 0 ? '🔥 ออกในงวดล่าสุด' : `ยังไม่ออกมา ${item.lastSeen} งวด`}
-                      </span>
-                      <span className="numbers-font" style={{ fontWeight: 'bold', color: barColor, fontSize: '13px' }}>
-                        {item.probability}%
-                      </span>
-                    </div>
-                    <div className="progress-bar-container" style={{ height: isTop3 ? '12px' : '8px', background: 'rgba(255,255,255,0.04)' }}>
-                      <div 
-                        className="progress-bar-fill" 
-                        style={{ 
-                          width: `${Math.min(item.probability * 4.5, 100)}%`,
-                          background: `linear-gradient(90deg, ${barColor}44 0%, ${barColor} 100%)`,
-                          boxShadow: isTop3 ? `0 0 10px ${barColor}` : 'none',
-                          borderRadius: '6px',
-                          transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
-                        }}
-                      />
-                    </div>
+                  <div style={{ flex: 1, background: 'rgba(255,255,255,0.05)', borderRadius: '10px', height: '24px', overflow: 'hidden', position: 'relative' }}>
+                    <div style={{ 
+                      width: `${Math.max(item.probability, 5)}%`, 
+                      background: barColor, 
+                      height: '100%', 
+                      borderRadius: '10px',
+                      transition: 'width 1s ease-in-out'
+                    }}></div>
+                  </div>
+                  <div style={{ width: '45px', textAlign: 'right', fontWeight: 'bold', fontSize: '14px' }}>
+                    {item.probability}%
                   </div>
                 </div>
               );
@@ -192,83 +223,55 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
         </div>
       </div>
 
-      {/* Right panel - Side stats widgets */}
+      {/* Right panel - Extra Analytics & Widgets */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        {/* AI Accuracy Backtest Widget */}
-        <div className="glass-card" style={{
-          border: '1px solid rgba(16, 185, 129, 0.3)',
-          background: 'rgba(16, 185, 129, 0.03)',
-          boxShadow: '0 0 20px rgba(16, 185, 129, 0.05)'
-        }}>
-          <h3 style={{ fontSize: '18px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            🏆 อัตราแม่นยำย้อนหลังของ AI
+        {/* Global Accuracy Gauge */}
+        <div className="glass-card" style={{ textAlign: 'center' }}>
+          <h3 style={{ fontSize: '16px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            🏆 อัตราแม่นยำย้อนหลังของ AI Super v4
           </h3>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-            <span className="numbers-font" style={{ fontSize: '48px', fontWeight: 'bold', color: 'var(--success)', textShadow: '0 0 15px rgba(16, 185, 129, 0.3)' }}>
-              {globalAccuracy}%
-            </span>
-            <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>ประเมินผล 10 งวดล่าสุด</span>
+          <div style={{ fontSize: '48px', fontWeight: 'bold', color: theme.primary, textShadow: `0 0 20px ${theme.primary}` }}>
+            {globalAccuracy}%
           </div>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px', lineHeight: '1.4' }}>
-            คำนวณย้อนกลับ (Backtesting) เพื่อเช็คว่าตัวเลขรางวัลที่ออกจริง ตรงกับที่ระบบทำนายเป็นเลขเด่น Top 3 หรือไม่
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
+            ประเมินผล 10 งวดล่าสุด คำนวณย้อนหลัง (Backtesting) เช็คผลรางวัลออกจริงเทียบเลขเด่น Top 3
           </p>
         </div>
 
-        {/* Odd vs Even widget */}
+        {/* Odd/Even Ratio */}
         <div className="glass-card">
-          <h3 style={{ fontSize: '18px', marginBottom: '20px' }}>⚖️ อัตราส่วน เลขคู่-คี่</h3>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ color: lottoType === 'hanoi' ? '#FF007F' : '#BD00FF', fontWeight: 'bold' }}>เลขคี่: {oddEven.odd}%</span>
-            <span style={{ color: lottoType === 'lao' ? '#00E5FF' : '#00F0FF', fontWeight: 'bold' }}>เลขคู่: {oddEven.even}%</span>
+          <h3 style={{ fontSize: '16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            ⚖️ อัตราส่วน เลขคู่-คี่
+          </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+            <span style={{ color: '#00E5FF' }}>เลขคี่: {oddEven.odd}%</span>
+            <span style={{ color: '#FF007F' }}>เลขคู่: {oddEven.even}%</span>
           </div>
-
-          <div style={{ height: '14px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden', display: 'flex' }}>
-            <div style={{ width: `${oddEven.odd}%`, background: lottoType === 'lao' ? '#0077FF' : lottoType === 'hanoi' ? 'linear-gradient(135deg, #FF007F 0%, #FF0000 100%)' : 'linear-gradient(135deg, var(--primary) 0%, #D000FF 100%)' }} />
-            <div style={{ width: `${oddEven.even}%`, background: lottoType === 'lao' ? 'linear-gradient(135deg, #00E5FF 0%, #00FFBB 100%)' : 'linear-gradient(135deg, var(--secondary) 0%, #009DFF 100%)' }} />
+          <div style={{ display: 'flex', height: '16px', borderRadius: '8px', overflow: 'hidden', background: 'rgba(255,255,255,0.05)' }}>
+            <div style={{ width: `${oddEven.odd}%`, background: '#00E5FF', transition: 'width 1s ease' }}></div>
+            <div style={{ width: `${oddEven.even}%`, background: '#FF007F', transition: 'width 1s ease' }}></div>
           </div>
-          
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '12px', lineHeight: '1.4' }}>
-            สัดส่วนการออกสลับระหว่างเลขคู่และเลขคี่ในรางวัลเลขท้ายของประเภทหวยนี้
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '12px' }}>
+            สัดส่วนการออกสลับระหว่างเลขคู่และเลขคี่ในรางวัลท้ายของประเภทหวยนี้
           </p>
         </div>
 
-        {/* High vs Low widget */}
+        {/* High/Low Ratio */}
         <div className="glass-card">
-          <h3 style={{ fontSize: '18px', marginBottom: '20px' }}>📈 อัตราส่วน เลขสูง-ต่ำ</h3>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>เลขต่ำ (0-4) vs เลขสูง (5-9)</div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ color: '#10B981', fontWeight: 'bold' }}>เลขต่ำ: {highLow.low}%</span>
-            <span style={{ color: theme.accentText, fontWeight: 'bold' }}>เลขสูง: {highLow.high}%</span>
+          <h3 style={{ fontSize: '16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            📊 อัตราส่วน เลขสูง-ต่ำ (0-4 / 5-9)
+          </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+            <span style={{ color: 'var(--gold)' }}>เลขสูง (5-9): {highLow.high}%</span>
+            <span style={{ color: '#A855F7' }}>เลขต่ำ (0-4): {highLow.low}%</span>
           </div>
-
-          <div style={{ height: '14px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden', display: 'flex' }}>
-            <div style={{ width: `${highLow.low}%`, background: 'var(--success)' }} />
-            <div style={{ width: `${highLow.high}%`, background: theme.primary }} />
+          <div style={{ display: 'flex', height: '16px', borderRadius: '8px', overflow: 'hidden', background: 'rgba(255,255,255,0.05)' }}>
+            <div style={{ width: `${highLow.high}%`, background: 'var(--gold)', transition: 'width 1s ease' }}></div>
+            <div style={{ width: `${highLow.low}%`, background: '#A855F7', transition: 'width 1s ease' }}></div>
           </div>
-
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '12px', lineHeight: '1.4' }}>
-            เปรียบเทียบระหว่างเลขกลุ่มน้อยกว่า 5 และ กลุ่มมากกว่าหรือเท่ากับ 5 ในรางวัลเลขท้าย
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '12px' }}>
+            สัดส่วนการออกระหว่างเลขช่วงสูง (5-9) และเลขช่วงต่ำ (0-4)
           </p>
-        </div>
-
-        {/* Historic digit occurrences table */}
-        <div className="glass-card">
-          <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>🏆 ลำดับเลขออกบ่อยที่สุด</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {digitStats.slice(0, 5).map((stat, idx) => (
-              <div key={stat.digit} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>#{idx+1}</span>
-                  <span className={`number-ball ${lottoType === 'lao' ? 'cyan-ball' : lottoType === 'hanoi' ? 'magenta-ball' : 'gold-ball'}`} style={{ width: '28px', height: '28px', fontSize: '13px', margin: 0, color: lottoType === 'thai' ? '#000' : '#FFF' }}>{stat.digit}</span>
-                </div>
-                <div className="numbers-font" style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                  ออกทั้งหมด <span style={{ color: theme.primary }}>{stat.count}</span> ครั้ง
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>
