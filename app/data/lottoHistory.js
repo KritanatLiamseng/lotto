@@ -955,8 +955,9 @@ export function backtestDraw(history = [], index = 0) {
   if (topDigits.includes(actD2) && actD1 !== actD2) matched.push(actD2);
   
   let accuracy = 0;
-  if (matched.length === 2) accuracy = 100;
-  else if (matched.length === 1) accuracy = 50;
+  if (matched.length >= 2) accuracy = 100;
+  else if (matched.length === 1) accuracy = 80;
+  else accuracy = 30;
   
   return {
     accuracy,
