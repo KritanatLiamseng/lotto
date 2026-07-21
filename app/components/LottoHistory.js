@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { backtestDraw, getPredictionStats } from '../data/lottoHistory';
 
-export default function LottoHistory({ lottoType = 'thai', lottoData = [], onUpdateDraw, isAdminMode = false, onToggleAdmin }) {
+export default function LottoHistory({ lottoType = 'thai', lottoData = [], historyData = [], activeSubLotto = 'all' }) {
+  const effectiveData = lottoData.length > 0 ? lottoData : historyData;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedYear, setSelectedYear] = useState('ทั้งหมด');
   const [currentPage, setCurrentPage] = useState(1);
@@ -94,7 +95,7 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [], onUpd
   }, [lottoType]);
 
   // Filter logic
-  const filteredHistory = lottoData.filter(draw => {
+  const filteredHistory = effectiveData.filter(draw => {
     // 1. Filter by year
     if (selectedYear !== 'ทั้งหมด' && !draw.date.includes(selectedYear)) {
       return false;

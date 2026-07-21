@@ -281,6 +281,7 @@ export default function Home() {
         {activeTab === 'history' && (
           <LottoHistory 
             lottoType={activeLotto} 
+            lottoData={activeData}
             historyData={activeData} 
             activeSubLotto={activeSubLotto} 
           />
@@ -289,7 +290,9 @@ export default function Home() {
         {activeTab === 'performance' && (
           <AIPerformance 
             lottoType={activeLotto} 
+            lottoData={subDataForPredictor}
             historyData={subDataForPredictor} 
+            activeSubLotto={activeSubLotto}
           />
         )}
 

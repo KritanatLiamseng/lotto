@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { getPredictionStats } from '../data/lottoHistory';
 
-export default function AIPerformance({ lottoType = 'thai', lottoData = [], activeSubLotto = 'default' }) {
+export default function AIPerformance({ lottoType = 'thai', lottoData = [], historyData = [], activeSubLotto = 'default' }) {
+  const effectiveData = lottoData.length > 0 ? lottoData : historyData;
   const [digitMode, setDigitMode] = useState('2digit'); // '2digit', '3digit'
   const [performanceList, setPerformanceList] = useState([]);
   const [stats, setStats] = useState({ total: 0, fullHits: 0, partialHits: 0, accuracy: 0 });
@@ -29,12 +30,12 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [], acti
     let partialHitsCount = 0;
     let sumAccuracy = 0;
 
-    lottoData.forEach((draw, parentIdx) => {
+    effectiveData.forEach((draw, parentIdx) => {
       // Oldest draw cannot be backtested since it has no prior history to predict on
-      const isOldest = parentIdx >= lottoData.length - 1;
+      const isOldest = parentIdx >= effectiveData.length - 1;
       if (isOldest) return;
 
-      const pastData = lottoData.slice(parentIdx + 1);
+      const pastData = effectiveData.slice(parentIdx + 1);
       const predictions = getPredictionStats(pastData);
       const topDigits = predictions.slice(0, 3).map(p => p.digit);
 
@@ -238,7 +239,7 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [], acti
 
           subDrawKeys.forEach(sub => {
             if (!draw[sub.key]) return;
-            const flatSubHistory = lottoData.map(item => item[sub.key]).filter(Boolean);
+            const flatSubHistory = effectiveData.map(item => item[sub.key]).filter(Boolean);
             const subPastData = flatSubHistory.slice(parentIdx + 1);
             const subPredictions = getPredictionStats(subPastData);
             const subTopDigits = subPredictions.slice(0, 3).map(p => p.digit);
@@ -290,7 +291,7 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [], acti
       partialHits: partialHitsCount,
       accuracy: totalEvaluated > 0 ? Math.round(sumAccuracy / totalEvaluated) : 0
     });
-  }, [lottoType, lottoData, digitMode]);
+  }, [lottoType, effectiveData, digitMode]);
 
   // Filter sub-draws based on selected sub-filter
   const filteredReports = performanceList.filter(rep => {
