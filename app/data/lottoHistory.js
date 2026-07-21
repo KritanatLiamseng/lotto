@@ -785,12 +785,12 @@ export function getPredictionStats(history = []) {
 
   // --- SELF-TUNING WEIGHT OPTIMIZATION ENGINE (LOCAL BACKTEST GRID SEARCH v3) ---
   const configurations = [
-    { name: "Agent A (Recency Heavy)", wRec: 0.35, wCo: 0.10, wOvd: 0.10, wMrk: 0.15, wPos: 0.10, wAr: 0.10, wMod: 0.10 },
-    { name: "Agent B (Markov Heavy)", wRec: 0.15, wCo: 0.10, wOvd: 0.10, wMrk: 0.35, wPos: 0.10, wAr: 0.10, wMod: 0.10 },
-    { name: "Agent C (Mean Reversion Heavy)", wRec: 0.10, wCo: 0.10, wOvd: 0.40, wMrk: 0.10, wPos: 0.10, wAr: 0.10, wMod: 0.10 },
-    { name: "Agent D (Positional Heavy)", wRec: 0.15, wCo: 0.10, wOvd: 0.10, wMrk: 0.10, wPos: 0.35, wAr: 0.10, wMod: 0.10 },
-    { name: "Agent E (Arithmetic Sum Heavy)", wRec: 0.10, wCo: 0.10, wOvd: 0.10, wMrk: 0.10, wPos: 0.10, wAr: 0.40, wMod: 0.10 },
-    { name: "Agent F (Modulo Interval Heavy)", wRec: 0.10, wCo: 0.10, wOvd: 0.10, wMrk: 0.10, wPos: 0.10, wAr: 0.10, wMod: 0.40 }
+    { name: "Agent A (Recency Momentum Heavy)", wRec: 0.45, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.05, wMod: 0.05 },
+    { name: "Agent B (Markov Transition Heavy)", wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.35, wPos: 0.10, wAr: 0.05, wMod: 0.05 },
+    { name: "Agent C (Co-occurrence Heavy)", wRec: 0.25, wCo: 0.35, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.05, wMod: 0.05 },
+    { name: "Agent D (Positional Heavy)", wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.30, wAr: 0.05, wMod: 0.05 },
+    { name: "Agent E (Arithmetic Sum Heavy)", wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.25, wMod: 0.05 },
+    { name: "Agent F (Modulo Interval Heavy)", wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.05, wMod: 0.25 }
   ];
 
   const getCombinedScores = (c) => {
