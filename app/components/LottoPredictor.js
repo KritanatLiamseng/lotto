@@ -84,9 +84,16 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         {/* Probability recommendations card */}
         <div className="glass-card" style={{ borderLeft: theme.borderLeft }}>
-          <h2 style={{ fontSize: '20px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: theme.primary }}>★</span> เลขเด่นแนะนำงวดถัดไป
-          </h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '20px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ color: theme.primary }}>★</span> เลขเด่นแนะนำงวดถัดไป
+            </h2>
+            {lottoData && lottoData.length > 0 && (
+              <span style={{ fontSize: '12px', color: theme.primary, background: 'rgba(255,255,255,0.03)', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
+                ⚡ สถิติล่าสุดที่ประมวลผล: {lottoData[0]?.date}
+              </span>
+            )}
+          </div>
           
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', margin: '24px 0', alignItems: 'center' }}>
             <div style={{ flex: 1, minWidth: '200px' }}>

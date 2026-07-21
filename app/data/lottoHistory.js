@@ -582,18 +582,11 @@ export function getSubDrawsOnly(history = [], lottoType = 'thai', subKey = 'defa
 
   history.forEach(item => {
     if (lottoType === 'thai') {
-      list.push(item);
-    } else if (lottoType === 'lao') {
-      if (item[validKey] && !item[validKey].isSimulated) {
-        list.push({
-          date: item.date,
-          firstPrize: item[validKey].firstPrize,
-          twoDigitBack: item[validKey].twoDigitBack,
-          threeDigitBack: item[validKey].threeDigitBack
-        });
+      if (item.firstPrize || item.twoDigitBack) {
+        list.push(item);
       }
-    } else if (lottoType === 'hanoi') {
-      if (item[validKey] && !item[validKey].isSimulated) {
+    } else if (lottoType === 'lao' || lottoType === 'hanoi') {
+      if (item[validKey] && (item[validKey].firstPrize || item[validKey].twoDigitBack)) {
         list.push({
           date: item.date,
           firstPrize: item[validKey].firstPrize,
