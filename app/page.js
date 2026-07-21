@@ -290,8 +290,8 @@ export default function Home() {
         {activeTab === 'performance' && (
           <AIPerformance 
             lottoType={activeLotto} 
-            lottoData={subDataForPredictor}
-            historyData={subDataForPredictor} 
+            lottoData={activeData}
+            historyData={activeData} 
             activeSubLotto={activeSubLotto}
           />
         )}
