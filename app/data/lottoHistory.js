@@ -876,14 +876,16 @@ export function getPredictionStats(history = []) {
 
   const predictionList = [];
   for (let d = 0; d < 10; d++) {
+    const rawScore = optimizedScores[d];
     predictionList.push({
       digit: d,
-      probability: Math.round((optimizedScores[d] / (totalScoreSum || 1)) * 100),
+      score: rawScore,
+      probability: Math.round((rawScore / (totalScoreSum || 1)) * 100),
       lastSeen: lastSeen[d]
     });
   }
 
-  return predictionList.sort((a, b) => b.probability - a.probability);
+  return predictionList.sort((a, b) => b.score - a.score);
 }
 
 // Calculator 3: Odd vs Even
