@@ -641,18 +641,24 @@ export function getPredictionStats(history = []) {
 
   const size = Math.min(history.length, 25);
 
-  // --- LAYER 1: EXPONENTIAL RECENCY MOMENTUM ---
+  // --- LAYER 1: DIRECT LATEST DRAW MOMENTUM BOOST ---
   const recencyCounts = Array(10).fill(0);
   let totalWeights = 0;
-  for (let i = 0; i < size; i++) {
+  const recencyLimit = Math.min(history.length, 10);
+  for (let i = 0; i < recencyLimit; i++) {
     const draw = history[i];
-    // Steep exponential decay so latest draw results dynamically drive new AI predictions
-    const weight = Math.pow(0.52, i);
+    // Steep decay + 3.0x bonus weight on latest draw so numbers update dynamically on every new result
+    const weight = Math.pow(0.35, i) * (i === 0 ? 3.0 : i === 1 ? 1.8 : 1.0);
     const d1 = draw.twoDigitBack;
     if (d1 && d1.length === 2) {
       recencyCounts[parseInt(d1[0])] += weight;
       recencyCounts[parseInt(d1[1])] += weight;
       totalWeights += (weight * 2);
+    }
+    if (draw.threeDigitBack && draw.threeDigitBack.length === 3) {
+      const d3_0 = parseInt(draw.threeDigitBack[0]);
+      recencyCounts[d3_0] += (weight * 0.5);
+      totalWeights += (weight * 0.5);
     }
   }
   const recencyScores = recencyCounts.map(count => count / (totalWeights || 1));
