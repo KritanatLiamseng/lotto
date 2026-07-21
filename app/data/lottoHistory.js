@@ -574,7 +574,7 @@ export function getSubDrawsOnly(history = [], lottoType = 'thai', subKey = 'defa
       list.push(item);
     } else if (lottoType === 'lao') {
       const key = subKey === 'default' ? 'development' : subKey;
-      if (item[key]) {
+      if (item[key] && !item[key].isSimulated) {
         list.push({
           date: item.date,
           firstPrize: item[key].firstPrize,
@@ -584,7 +584,7 @@ export function getSubDrawsOnly(history = [], lottoType = 'thai', subKey = 'defa
       }
     } else if (lottoType === 'hanoi') {
       const key = subKey === 'default' ? 'normal' : subKey;
-      if (item[key]) {
+      if (item[key] && !item[key].isSimulated) {
         list.push({
           date: item.date,
           firstPrize: item[key].firstPrize,

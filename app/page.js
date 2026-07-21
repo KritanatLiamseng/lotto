@@ -10,7 +10,7 @@ import AIPerformance from './components/AIPerformance';
 // Baseline data
 import { lottoHistory, laoLottoHistory, hanoiLottoHistory, getSubDrawsOnly } from './data/lottoHistory';
 
-const DB_VERSION = 'v2026_07_21_v6';
+const DB_VERSION = 'v2026_07_21_v7';
 
 const monthsThai = [
   "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
@@ -198,27 +198,27 @@ export default function Home() {
             if (isLao) {
               // Star is daily
               const starVal = generateRandomLottoDigits(4);
-              newEntry.star = { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: starVal, twoDigitBack: starVal.slice(-2), threeDigitBack: starVal.slice(-3) };
+              newEntry.star = { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: starVal, twoDigitBack: starVal.slice(-2), threeDigitBack: starVal.slice(-3), isSimulated: true };
               
               // Development is Mon-Fri (1-5)
               if (dayOfWeek >= 1 && dayOfWeek <= 5) {
                 const devVal = generateRandomLottoDigits(4);
-                newEntry.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: devVal, twoDigitBack: devVal.slice(-2), threeDigitBack: devVal.slice(-3) };
+                newEntry.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: devVal, twoDigitBack: devVal.slice(-2), threeDigitBack: devVal.slice(-3), isSimulated: true };
               }
               
               // Samakkee is Tue, Wed, Fri, Sat, Sun (not Mon=1, not Thu=4)
               if (dayOfWeek !== 1 && dayOfWeek !== 4) {
                 const samVal = generateRandomLottoDigits(4);
-                newEntry.samakkee = { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: samVal, twoDigitBack: samVal.slice(-2), threeDigitBack: samVal.slice(-3) };
+                newEntry.samakkee = { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: samVal, twoDigitBack: samVal.slice(-2), threeDigitBack: samVal.slice(-3), isSimulated: true };
               }
             } else {
               // Hanoi is daily
               const specVal = generateRandomLottoDigits(5);
               const normVal = generateRandomLottoDigits(5);
               const vipVal = generateRandomLottoDigits(5);
-              newEntry.special = { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: specVal, twoDigitBack: specVal.slice(-2), threeDigitBack: specVal.slice(-3) };
-              newEntry.normal = { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: normVal, twoDigitBack: normVal.slice(-2), threeDigitBack: normVal.slice(-3) };
-              newEntry.vip = { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: vipVal, twoDigitBack: vipVal.slice(-2), threeDigitBack: vipVal.slice(-3) };
+              newEntry.special = { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: specVal, twoDigitBack: specVal.slice(-2), threeDigitBack: specVal.slice(-3), isSimulated: true };
+              newEntry.normal = { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: normVal, twoDigitBack: normVal.slice(-2), threeDigitBack: normVal.slice(-3), isSimulated: true };
+              newEntry.vip = { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: vipVal, twoDigitBack: vipVal.slice(-2), threeDigitBack: vipVal.slice(-3), isSimulated: true };
             }
             newEntries.unshift(newEntry);
             listChanged = true;
@@ -235,33 +235,33 @@ export default function Home() {
             if (isLao) {
               if (currentTimeVal >= 945 && !todayEntry.star) { // Past 15:45
                 const starVal = generateRandomLottoDigits(4);
-                todayEntry.star = { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: starVal, twoDigitBack: starVal.slice(-2), threeDigitBack: starVal.slice(-3) };
+                todayEntry.star = { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: starVal, twoDigitBack: starVal.slice(-2), threeDigitBack: starVal.slice(-3), isSimulated: true };
                 todayUpdated = true;
               }
               if (dayOfWeek >= 1 && dayOfWeek <= 5 && currentTimeVal >= 1230 && !todayEntry.development) { // Mon-Fri & Past 20:30
                 const devVal = generateRandomLottoDigits(4);
-                todayEntry.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: devVal, twoDigitBack: devVal.slice(-2), threeDigitBack: devVal.slice(-3) };
+                todayEntry.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: devVal, twoDigitBack: devVal.slice(-2), threeDigitBack: devVal.slice(-3), isSimulated: true };
                 todayUpdated = true;
               }
               if (dayOfWeek !== 1 && dayOfWeek !== 4 && currentTimeVal >= 1290 && !todayEntry.samakkee) { // (not Mon/Thu) & Past 21:30
                 const samVal = generateRandomLottoDigits(4);
-                todayEntry.samakkee = { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: samVal, twoDigitBack: samVal.slice(-2), threeDigitBack: samVal.slice(-3) };
+                todayEntry.samakkee = { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: samVal, twoDigitBack: samVal.slice(-2), threeDigitBack: samVal.slice(-3), isSimulated: true };
                 todayUpdated = true;
               }
             } else {
               if (currentTimeVal >= 1035 && !todayEntry.special) { // Past 17:15
                 const specVal = generateRandomLottoDigits(5);
-                todayEntry.special = { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: specVal, twoDigitBack: specVal.slice(-2), threeDigitBack: specVal.slice(-3) };
+                todayEntry.special = { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: specVal, twoDigitBack: specVal.slice(-2), threeDigitBack: specVal.slice(-3), isSimulated: true };
                 todayUpdated = true;
               }
               if (currentTimeVal >= 1110 && !todayEntry.normal) { // Past 18:30
                 const normVal = generateRandomLottoDigits(5);
-                todayEntry.normal = { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: normVal, twoDigitBack: normVal.slice(-2), threeDigitBack: normVal.slice(-3) };
+                todayEntry.normal = { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: normVal, twoDigitBack: normVal.slice(-2), threeDigitBack: normVal.slice(-3), isSimulated: true };
                 todayUpdated = true;
               }
               if (currentTimeVal >= 1155 && !todayEntry.vip) { // Past 19:15
                 const vipVal = generateRandomLottoDigits(5);
-                todayEntry.vip = { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: vipVal, twoDigitBack: vipVal.slice(-2), threeDigitBack: vipVal.slice(-3) };
+                todayEntry.vip = { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: vipVal, twoDigitBack: vipVal.slice(-2), threeDigitBack: vipVal.slice(-3), isSimulated: true };
                 todayUpdated = true;
               }
             }

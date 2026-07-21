@@ -63,19 +63,19 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
 
   const theme = getThemeColors();
 
-  // Get recommended numbers
-  const topDigits = predictions.slice(0, 3).map(p => p.digit);
+  // Get recommended numbers (Deterministic & Consistent)
+  const topDigits = predictions.slice(0, 5).map(p => p.digit);
   const recommendedTwoDigits = [
     `${topDigits[0]}${topDigits[1]}`,
     `${topDigits[0]}${topDigits[2]}`,
     `${topDigits[1]}${topDigits[2]}`,
-    `${topDigits[0]}${predictions[3]?.digit || '9'}`
+    `${topDigits[0]}${topDigits[3]}`
   ];
   
   const recommendedThreeDigits = [
     `${topDigits[0]}${topDigits[1]}${topDigits[2]}`,
-    `9${topDigits[0]}${topDigits[1]}`,
-    `5${topDigits[0]}${topDigits[2]}`
+    `${topDigits[3]}${topDigits[0]}${topDigits[1]}`,
+    `${topDigits[4]}${topDigits[0]}${topDigits[2]}`
   ];
 
   return (
