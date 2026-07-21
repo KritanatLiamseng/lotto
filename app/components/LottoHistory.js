@@ -328,17 +328,17 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [], histo
               </thead>
               <tbody>
                 {currentItems.map((draw, index) => {
-                  const globalIdx = lottoData.findIndex(item => item.date === draw.date);
-                  const isOldest = globalIdx >= lottoData.length - 1;
+                  const globalIdx = effectiveData.findIndex(item => item.date === draw.date);
+                  const isOldest = globalIdx < 0 || globalIdx >= effectiveData.length - 1;
 
                   // 2-digit backtest
-                  const backtest2 = backtestDraw(lottoData, globalIdx);
+                  const backtest2 = backtestDraw(effectiveData, globalIdx);
 
                   // 3-digit backtest
                   let acc3 = 0;
                   let matched3 = [];
-                  if (!isOldest) {
-                    const pastData = lottoData.slice(globalIdx + 1);
+                  if (!isOldest && globalIdx >= 0) {
+                    const pastData = effectiveData.slice(globalIdx + 1);
                     const predictions = getPredictionStats(pastData);
                     const topDigits = predictions.slice(0, 3).map(p => p.digit);
                     
@@ -428,8 +428,8 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [], histo
               </thead>
               <tbody>
                 {currentItems.map((draw, parentIdx) => {
-                  const globalIdx = lottoData.findIndex(item => item.date === draw.date);
-                  const isOldest = globalIdx >= lottoData.length - 1;
+                  const globalIdx = effectiveData.findIndex(item => item.date === draw.date);
+                  const isOldest = globalIdx < 0 || globalIdx >= effectiveData.length - 1;
 
                   // Extract available sub-draws
                   const subDraws = [];
@@ -473,7 +473,7 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [], histo
 
                       {/* Sub-draw Rows */}
                       {subDraws.map((sub, childIdx) => {
-                        const flatSubHistory = lottoData.map(item => item[sub.key]).filter(Boolean);
+                        const flatSubHistory = effectiveData.map(item => item[sub.key]).filter(Boolean);
                         
                         // 2-digit backtest
                         const backtest2 = backtestDraw(flatSubHistory, globalIdx);

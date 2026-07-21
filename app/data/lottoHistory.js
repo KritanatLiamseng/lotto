@@ -941,7 +941,9 @@ export function getHighLowRatio(history = []) {
 // Backtesting function: Predicts digit probability based on past data (history.slice(index + 1))
 // and checks if the actual result (draw at index) matches the top 3 predicted digits.
 export function backtestDraw(history = [], index = 0) {
-  if (index >= history.length - 1) return { accuracy: 0, matched: [] };
+  if (!history || history.length === 0 || index < 0 || index >= history.length - 1 || !history[index]) {
+    return { accuracy: 0, matched: [] };
+  }
   
   const pastData = history.slice(index + 1);
   const predictions = getPredictionStats(pastData);
