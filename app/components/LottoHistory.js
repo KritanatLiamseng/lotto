@@ -476,11 +476,11 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [], histo
                                   ? 'gold-ball'
                                   : 'cyan-ball'
                               }`} style={{
-                                width: '32px',
-                                height: '32px',
-                                fontSize: '14px',
-                                margin: 0,
-                                color: (sub.key === 'star' || sub.key === 'special' || (sub.key === 'development' && lottoType === 'lao')) ? '#000' : '#FFF'
+                                width: '36px',
+                                height: '36px',
+                                fontSize: '15px',
+                                fontWeight: '800',
+                                margin: 0
                               }}>
                                 {sub.twoDigitBack || '-'}
                               </span>

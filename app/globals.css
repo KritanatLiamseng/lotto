@@ -308,36 +308,39 @@ h1, h2, h3, h4, h5, h6 {
   background: rgba(255, 255, 255, 0.01);
 }
 
-/* Lottery Numbers presentation */
+/* Lottery Numbers presentation - Ultra High Contrast */
 .number-ball {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   font-family: var(--font-number);
-  font-weight: 700;
-  font-size: 18px;
+  font-weight: 800 !important;
+  font-size: 19px;
   margin: 0 4px;
-  box-shadow: inset -3px -3px 8px rgba(0, 0, 0, 0.4), 3px 3px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.5px;
 }
 
 .number-ball.gold-ball {
-  background: radial-gradient(circle at 30% 30%, #FFF5CC 0%, var(--gold) 40%, #B8860B 100%);
-  color: #1A1A1A;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-  box-shadow: 0 0 15px var(--gold-glow);
+  background: linear-gradient(135deg, #FFD700 0%, #FF9900 100%);
+  color: #000000 !important;
+  text-shadow: none;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
 }
 
 .number-ball.magenta-ball {
-  background: radial-gradient(circle at 30% 30%, #F5D0FF 0%, var(--primary) 40%, #7A00B0 100%);
-  color: #FFFFFF;
+  background: linear-gradient(135deg, #FF007F 0%, #9D00FF 100%);
+  color: #FFFFFF !important;
+  box-shadow: 0 0 15px rgba(255, 0, 127, 0.4);
 }
 
 .number-ball.cyan-ball {
-  background: radial-gradient(circle at 30% 30%, #E0F7FA 0%, var(--secondary) 40%, #00838F 100%);
-  color: #070514;
+  background: linear-gradient(135deg, #00E5FF 0%, #0088FF 100%);
+  color: #000000 !important;
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
 }
 
 /* Animations */
