@@ -10,7 +10,7 @@ import AIPerformance from './components/AIPerformance';
 // Baseline data
 import { lottoHistory, laoLottoHistory, hanoiLottoHistory, getSubDrawsOnly } from './data/lottoHistory';
 
-const DB_VERSION = 'v2026_07_21_v9';
+const DB_VERSION = 'v2026_07_21_v10';
 
 const monthsThai = [
   "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
@@ -74,11 +74,14 @@ export default function Home() {
               // 1. Load official baseline items first (real draw results)
               baselineList.forEach(item => mergedMap.set(item.date, item));
 
-              // 2. Incorporate persisted items only if date is missing in baseline OR marked custom by admin
+              // 2. Incorporate persisted items ONLY if date is newer than latest baseline date OR marked custom by admin
+              const latestBaselineDate = baselineList.length > 0 ? parseThaiDate(baselineList[0].date) : null;
+
               persistedList.forEach(pItem => {
-                if (!mergedMap.has(pItem.date)) {
+                const pDate = parseThaiDate(pItem.date);
+                if (pItem.isCustom) {
                   mergedMap.set(pItem.date, pItem);
-                } else if (pItem.isCustom) {
+                } else if (pDate && latestBaselineDate && pDate > latestBaselineDate) {
                   mergedMap.set(pItem.date, pItem);
                 }
               });
