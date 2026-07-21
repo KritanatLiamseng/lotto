@@ -413,6 +413,7 @@ export const laoLottoHistory = [
   {
     date: "21 กรกฎาคม 2569",
     star: { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: "2109", twoDigitBack: "09", threeDigitBack: "109" },
+    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "6592", twoDigitBack: "92", threeDigitBack: "592", status: "official" },
     samakkee: { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: "5401", twoDigitBack: "01", threeDigitBack: "401" }
   },
   {

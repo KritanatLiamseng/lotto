@@ -10,7 +10,7 @@ import AIPerformance from './components/AIPerformance';
 // Baseline data
 import { lottoHistory, laoLottoHistory, hanoiLottoHistory, getSubDrawsOnly } from './data/lottoHistory';
 
-const DB_VERSION = 'v2026_07_21_v14';
+const DB_VERSION = 'v2026_07_21_v15';
 
 const monthsThai = [
   "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
