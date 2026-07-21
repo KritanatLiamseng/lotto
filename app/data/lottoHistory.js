@@ -646,7 +646,8 @@ export function getPredictionStats(history = []) {
   let totalWeights = 0;
   for (let i = 0; i < size; i++) {
     const draw = history[i];
-    const weight = Math.pow(0.86, i);
+    // Steep exponential decay so latest draw results dynamically drive new AI predictions
+    const weight = Math.pow(0.52, i);
     const d1 = draw.twoDigitBack;
     if (d1 && d1.length === 2) {
       recencyCounts[parseInt(d1[0])] += weight;
