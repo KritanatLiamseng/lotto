@@ -379,7 +379,7 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [], histo
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', gap: '8px' }}>
-                          {draw.threeDigitFront.map((num, idx) => (
+                          {(draw.threeDigitFront || []).map((num, idx) => (
                             <span key={idx} className="numbers-font" style={{ background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-card)' }}>
                               {num}
                             </span>
@@ -388,7 +388,7 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [], histo
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', gap: '8px' }}>
-                          {draw.threeDigitBack.map((num, idx) => (
+                          {(draw.threeDigitBack || []).map((num, idx) => (
                             <span key={idx} className="numbers-font" style={{ background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-card)' }}>
                               {num}
                             </span>
@@ -474,15 +474,17 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [], histo
                       {/* Sub-draw Rows */}
                       {subDraws.map((sub, childIdx) => {
                         const flatSubHistory = effectiveData.map(item => item[sub.key]).filter(Boolean);
+                        const subIdx = flatSubHistory.findIndex(s => s === sub || (s.firstPrize === sub.firstPrize && s.twoDigitBack === sub.twoDigitBack));
+                        const subIsOldest = subIdx < 0 || subIdx >= flatSubHistory.length - 1;
                         
                         // 2-digit backtest
-                        const backtest2 = backtestDraw(flatSubHistory, globalIdx);
+                        const backtest2 = backtestDraw(flatSubHistory, subIdx);
 
                         // 3-digit backtest
                         let acc3 = 0;
                         let matched3 = [];
-                        if (!isOldest) {
-                          const subPastData = flatSubHistory.slice(globalIdx + 1);
+                        if (!subIsOldest && subIdx >= 0) {
+                          const subPastData = flatSubHistory.slice(subIdx + 1);
                           const subPredictions = getPredictionStats(subPastData);
                           const subTopDigits = subPredictions.slice(0, 3).map(p => p.digit);
                           const actual3 = sub.threeDigitBack;
@@ -579,7 +581,7 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [], histo
 
                             {/* AI Accuracy Column */}
                             <td style={{ textAlign: 'center' }}>
-                              {isOldest ? (
+                              {subIsOldest ? (
                                 <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>N/A (ฐานข้อมูลเริ่มต้น)</span>
                               ) : (
                                 renderStackedBadges(backtest2, acc3, matched3)
