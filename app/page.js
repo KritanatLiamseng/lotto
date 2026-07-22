@@ -96,22 +96,18 @@ export default function Home() {
           hasDraws = true;
         }
 
-        // Lao Development: Mon, Wed, Fri at 20:30 (1230 minutes)
-        if (dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5) {
-          if (!isToday || timeVal >= 1230 + 10) {
-            const num = generateDeterministicDraw(`lao_development_${dateStr}`, 4);
-            entry.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: num, twoDigitBack: num.slice(-2), threeDigitBack: num.slice(-3), status: "official" };
-            hasDraws = true;
-          }
+        // Lao Development: Daily at 20:30 (1230 minutes)
+        if (!isToday || timeVal >= 1230 + 10) {
+          const num = generateDeterministicDraw(`lao_development_${dateStr}`, 4);
+          entry.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: num, twoDigitBack: num.slice(-2), threeDigitBack: num.slice(-3), status: "official" };
+          hasDraws = true;
         }
 
-        // Lao Samakkee: Tue, Wed, Fri, Sat, Sun at 21:30 (1290 minutes)
-        if (dayOfWeek === 0 || dayOfWeek === 2 || dayOfWeek === 3 || dayOfWeek === 5 || dayOfWeek === 6) {
-          if (!isToday || timeVal >= 1290 + 10) {
-            const num = generateDeterministicDraw(`lao_samakkee_${dateStr}`, 4);
-            entry.samakkee = { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: num, twoDigitBack: num.slice(-2), threeDigitBack: num.slice(-3), status: "official" };
-            hasDraws = true;
-          }
+        // Lao Samakkee: Daily at 21:30 (1290 minutes)
+        if (!isToday || timeVal >= 1290 + 10) {
+          const num = generateDeterministicDraw(`lao_samakkee_${dateStr}`, 4);
+          entry.samakkee = { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: num, twoDigitBack: num.slice(-2), threeDigitBack: num.slice(-3), status: "official" };
+          hasDraws = true;
         }
 
         if (hasDraws) {
@@ -231,7 +227,7 @@ export default function Home() {
       case 'lao':
         return {
           title: 'กำหนดเวลาออกผลรางวัล: หวยลาว (ลาวสตาร์, ลาวพัฒนา, ลาวสามัคคี)',
-          detail: '🇱🇦 ออกรางวัลย่อยตามเวลาจริง: ลาวพัฒนา: จ.-ศ. (20:30) | ลาวสตาร์: ทุกวัน (15:45) | ลาวสามัคคี: อ.,พ.,ศ.,ส.,อา. (21:30)',
+          detail: '🇱🇦 ออกรางวัลย่อยทุกวัน: ลาวสตาร์ (15:45) | ลาวพัฒนา (20:30) | ลาวสามัคคี (21:30)',
           nextDraw: 'ประมวลผลความน่าจะเป็นงวดถัดไป'
         };
       case 'hanoi':
@@ -315,8 +311,8 @@ export default function Home() {
           {activeLotto === 'lao' ? (
             [
               { id: 'star', label: '🟠 ลาวสตาร์ (ทุกวัน 15:45 น.)' },
-              { id: 'development', label: '🟡 หวยลาวพัฒนา (จ.-ศ. 20:30 น.)' },
-              { id: 'samakkee', label: '🟣 ลาวสามัคคี (อ.,พ.,ศ.,ส.,อา. 21:30 น.)' }
+              { id: 'development', label: '🟡 หวยลาวพัฒนา (ทุกวัน 20:30 น.)' },
+              { id: 'samakkee', label: '🟣 ลาวสามัคคี (ทุกวัน 21:30 น.)' }
             ].map(sub => (
               <button
                 key={sub.id}
