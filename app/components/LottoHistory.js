@@ -64,47 +64,75 @@ export default function LottoHistory({ lottoType = 'thai', lottoData = [], histo
     setSearchQuery('');
   }, [lottoType]);
 
-  // Filter logic
-  const filteredHistory = (effectiveData || []).filter(draw => {
-    if (!draw || !draw.date) return false;
-    
-    // 1. Filter by year
-    if (selectedYear !== 'ทั้งหมด' && !draw.date.includes(selectedYear)) {
-      return false;
-    }
-    
-    // 2. Filter by search query
-    if (searchQuery.trim() !== '') {
-      const q = searchQuery.trim();
-      const inDate = draw.date.includes(q);
+  // Filter logic: Exclude simulated/mock draws and apply user filters
+  const filteredHistory = React.useMemo(() => {
+    return (effectiveData || [])
+      .map(draw => {
+        if (!draw) return null;
+        
+        // Return a copy with only non-simulated sub-draws
+        const cleanDraw = { ...draw };
+        
+        if (lottoType === 'thai') {
+          if (cleanDraw.status === 'simulated') return null;
+        } else if (lottoType === 'lao') {
+          if (cleanDraw.star && cleanDraw.star.status === 'simulated') delete cleanDraw.star;
+          if (cleanDraw.development && cleanDraw.development.status === 'simulated') delete cleanDraw.development;
+          if (cleanDraw.samakkee && cleanDraw.samakkee.status === 'simulated') delete cleanDraw.samakkee;
+          
+          if (!cleanDraw.star && !cleanDraw.development && !cleanDraw.samakkee) return null;
+        } else if (lottoType === 'hanoi') {
+          if (cleanDraw.special && cleanDraw.special.status === 'simulated') delete cleanDraw.special;
+          if (cleanDraw.normal && cleanDraw.normal.status === 'simulated') delete cleanDraw.normal;
+          if (cleanDraw.vip && cleanDraw.vip.status === 'simulated') delete cleanDraw.vip;
+          
+          if (!cleanDraw.special && !cleanDraw.normal && !cleanDraw.vip) return null;
+        }
+        
+        return cleanDraw;
+      })
+      .filter(Boolean)
+      .filter(draw => {
+        if (!draw.date) return false;
+        
+        // 1. Filter by year
+        if (selectedYear !== 'ทั้งหมด' && !draw.date.includes(selectedYear)) {
+          return false;
+        }
+        
+        // 2. Filter by search query
+        if (searchQuery.trim() !== '') {
+          const q = searchQuery.trim();
+          const inDate = draw.date.includes(q);
 
-      if (lottoType === 'thai') {
-        const inFirst = draw.firstPrize && draw.firstPrize.includes(q);
-        const inTwoDigit = draw.twoDigitBack && draw.twoDigitBack.includes(q);
-        const inThreeFront = draw.threeDigitFront && Array.isArray(draw.threeDigitFront) && draw.threeDigitFront.some(n => n && n.includes(q));
-        const inThreeBack = draw.threeDigitBack && Array.isArray(draw.threeDigitBack) && draw.threeDigitBack.some(n => n && n.includes(q));
-        return inFirst || inTwoDigit || inThreeFront || inThreeBack || inDate;
-      } else if (lottoType === 'lao') {
-        const checkSubDraw = (sub) => {
-          if (!sub) return false;
-          return (sub.firstPrize && sub.firstPrize.includes(q)) || 
-                 (sub.twoDigitBack && sub.twoDigitBack.includes(q)) || 
-                 (sub.threeDigitBack && sub.threeDigitBack.includes(q));
-        };
-        return checkSubDraw(draw.star) || checkSubDraw(draw.development) || checkSubDraw(draw.samakkee) || inDate;
-      } else if (lottoType === 'hanoi') {
-        const checkSubDraw = (sub) => {
-          if (!sub) return false;
-          return (sub.firstPrize && sub.firstPrize.includes(q)) || 
-                 (sub.twoDigitBack && sub.twoDigitBack.includes(q)) || 
-                 (sub.threeDigitBack && sub.threeDigitBack.includes(q));
-        };
-        return checkSubDraw(draw.special) || checkSubDraw(draw.normal) || checkSubDraw(draw.vip) || inDate;
-      }
-    }
+          if (lottoType === 'thai') {
+            const inFirst = draw.firstPrize && draw.firstPrize.includes(q);
+            const inTwoDigit = draw.twoDigitBack && draw.twoDigitBack.includes(q);
+            const inThreeFront = draw.threeDigitFront && Array.isArray(draw.threeDigitFront) && draw.threeDigitFront.some(n => n && n.includes(q));
+            const inThreeBack = draw.threeDigitBack && Array.isArray(draw.threeDigitBack) && draw.threeDigitBack.some(n => n && n.includes(q));
+            return inFirst || inTwoDigit || inThreeFront || inThreeBack || inDate;
+          } else if (lottoType === 'lao') {
+            const checkSubDraw = (sub) => {
+              if (!sub) return false;
+              return (sub.firstPrize && sub.firstPrize.includes(q)) || 
+                     (sub.twoDigitBack && sub.twoDigitBack.includes(q)) || 
+                     (sub.threeDigitBack && sub.threeDigitBack.includes(q));
+            };
+            return checkSubDraw(draw.star) || checkSubDraw(draw.development) || checkSubDraw(draw.samakkee) || inDate;
+          } else if (lottoType === 'hanoi') {
+            const checkSubDraw = (sub) => {
+              if (!sub) return false;
+              return (sub.firstPrize && sub.firstPrize.includes(q)) || 
+                     (sub.twoDigitBack && sub.twoDigitBack.includes(q)) || 
+                     (sub.threeDigitBack && sub.threeDigitBack.includes(q));
+            };
+            return checkSubDraw(draw.special) || checkSubDraw(draw.normal) || checkSubDraw(draw.vip) || inDate;
+          }
+        }
 
-    return true;
-  });
+        return true;
+      });
+  }, [effectiveData, lottoType, selectedYear, searchQuery]);
 
   // Pagination calculation
   const totalPages = Math.ceil((filteredHistory.length || 1) / itemsPerPage) || 1;

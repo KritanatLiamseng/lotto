@@ -92,21 +92,21 @@ export default function Home() {
         const isToday = isSameDay(date, now);
         if (!isToday || timeVal >= 945 + 10) {
           const num = generateDeterministicDraw(`lao_star_${dateStr}`, 4);
-          entry.star = { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: num, twoDigitBack: num.slice(-2), threeDigitBack: num.slice(-3), status: "official" };
+          entry.star = { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: num, twoDigitBack: num.slice(-2), threeDigitBack: num.slice(-3), status: "simulated" };
           hasDraws = true;
         }
 
         // Lao Development: Daily at 20:30 (1230 minutes)
         if (!isToday || timeVal >= 1230 + 10) {
           const num = generateDeterministicDraw(`lao_development_${dateStr}`, 4);
-          entry.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: num, twoDigitBack: num.slice(-2), threeDigitBack: num.slice(-3), status: "official" };
+          entry.development = { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: num, twoDigitBack: num.slice(-2), threeDigitBack: num.slice(-3), status: "simulated" };
           hasDraws = true;
         }
 
         // Lao Samakkee: Daily at 21:30 (1290 minutes)
         if (!isToday || timeVal >= 1290 + 10) {
           const num = generateDeterministicDraw(`lao_samakkee_${dateStr}`, 4);
-          entry.samakkee = { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: num, twoDigitBack: num.slice(-2), threeDigitBack: num.slice(-3), status: "official" };
+          entry.samakkee = { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: num, twoDigitBack: num.slice(-2), threeDigitBack: num.slice(-3), status: "simulated" };
           hasDraws = true;
         }
 
@@ -130,21 +130,21 @@ export default function Home() {
         // Hanoi Special: Daily at 17:15 (1035 minutes)
         if (!isToday || timeVal >= 1035 + 10) {
           const num = generateDeterministicDraw(`hanoi_special_${dateStr}`, 4);
-          entry.special = { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: num, twoDigitBack: num.slice(-2), threeDigitBack: num.slice(-3), status: "official" };
+          entry.special = { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: num, twoDigitBack: num.slice(-2), threeDigitBack: num.slice(-3), status: "simulated" };
           hasDraws = true;
         }
 
         // Hanoi Normal: Daily at 18:30 (1110 minutes)
         if (!isToday || timeVal >= 1110 + 10) {
           const num = generateDeterministicDraw(`hanoi_normal_${dateStr}`, 4);
-          entry.normal = { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: num, twoDigitBack: num.slice(-2), threeDigitBack: num.slice(-3), status: "official" };
+          entry.normal = { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: num, twoDigitBack: num.slice(-2), threeDigitBack: num.slice(-3), status: "simulated" };
           hasDraws = true;
         }
 
         // Hanoi VIP: Daily at 19:15 (1155 minutes)
         if (!isToday || timeVal >= 1155 + 10) {
           const num = generateDeterministicDraw(`hanoi_vip_${dateStr}`, 4);
-          entry.vip = { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: num, twoDigitBack: num.slice(-2), threeDigitBack: num.slice(-3), status: "official" };
+          entry.vip = { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: num, twoDigitBack: num.slice(-2), threeDigitBack: num.slice(-3), status: "simulated" };
           hasDraws = true;
         }
 
@@ -179,7 +179,7 @@ export default function Home() {
               twoDigitBack: twoDigitNum,
               threeDigitFront: [threeFront1, threeFront2],
               threeDigitBack: [threeBack1, threeBack2],
-              status: "official"
+              status: "simulated"
             });
             changed = true;
           }

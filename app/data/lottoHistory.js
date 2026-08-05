@@ -419,6 +419,12 @@ export const lottoHistory = [
 // Lao Development Lottery History with nested sub-draws (Star, Development, Samakkee)
 export const laoLottoHistory = [
   {
+    date: "4 สิงหาคม 2569",
+    star: { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: "0627", twoDigitBack: "27", threeDigitBack: "627", status: "official" },
+    development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "7886", twoDigitBack: "86", threeDigitBack: "886", status: "official" },
+    samakkee: { name: "ลาวสามัคคี", time: "21:30 น.", firstPrize: "1792", twoDigitBack: "92", threeDigitBack: "792", status: "official" }
+  },
+  {
     date: "3 สิงหาคม 2569",
     star: { name: "ลาวสตาร์", time: "15:45 น.", firstPrize: "4820", twoDigitBack: "20", threeDigitBack: "820", status: "official" },
     development: { name: "หวยลาวพัฒนา", time: "20:30 น.", firstPrize: "1680", twoDigitBack: "80", threeDigitBack: "680", status: "official" },
