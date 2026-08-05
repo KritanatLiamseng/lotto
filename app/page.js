@@ -189,6 +189,35 @@ export default function Home() {
       if (changed) {
         setDatabases(updatedDbs);
       }
+
+      // Fetch official GLO Thai Lottery and merge it to fix simulated/mock numbers
+      const fetchLiveThaiLotto = async () => {
+        try {
+          const res = await fetch('/api/lotto/thai');
+          const json = await res.json();
+          if (json.success && json.data) {
+            const liveDraw = json.data;
+            setDatabases(prev => {
+              const thaiDb = [...prev.thai];
+              const existingIdx = thaiDb.findIndex(d => d.date === liveDraw.date);
+              if (existingIdx !== -1) {
+                // Overwrite simulated entry with official GLO data
+                thaiDb[existingIdx] = liveDraw;
+              } else {
+                // If new, add it at the top
+                thaiDb.unshift(liveDraw);
+              }
+              return {
+                ...prev,
+                thai: thaiDb
+              };
+            });
+          }
+        } catch (err) {
+          console.error("Live Thai GLO sync failed:", err);
+        }
+      };
+      fetchLiveThaiLotto();
     } catch (e) {
       console.error("Live sync failed", e);
     }
