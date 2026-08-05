@@ -1,14 +1,45 @@
 'use client';
 
 import React, { useState } from 'react';
-import { getPredictionStats, getOddEvenRatio, getHighLowRatio, getDigitStats, getGlobalAccuracy } from '../data/lottoHistory';
+import { 
+  getPredictionStats, 
+  getOddEvenRatio, 
+  getHighLowRatio, 
+  getDigitStats, 
+  getGlobalAccuracy,
+  getTwinConsecutiveStats,
+  getPeriodicityStats
+} from '../data/lottoHistory';
 
 export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
-  // Synchronous calculation via useMemo - Zero delay, 100% reactive to prop updates
-  const predictions = React.useMemo(() => getPredictionStats(lottoData), [lottoData]);
+  const [tuningMode, setTuningMode] = useState('auto'); // 'auto', 'balanced', 'recency', 'markov', 'custom'
+  const [customWeights, setCustomWeights] = useState({
+    wRec: 0.25,
+    wCo: 0.15,
+    wOvd: 0.05,
+    wMrk: 0.15,
+    wPos: 0.10,
+    wAr: 0.15,
+    wMod: 0.15
+  });
+
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optProgress, setOptProgress] = useState(0);
+  const [optTrigger, setOptTrigger] = useState(0);
+
+  // Synchronous calculations via useMemo
+  const predictions = React.useMemo(() => {
+    return getPredictionStats(lottoData, tuningMode, customWeights);
+  }, [lottoData, tuningMode, customWeights, optTrigger]);
+
+  const activeWeights = predictions.activeWeights || {
+    wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.15, wMod: 0.15
+  };
+
   const oddEven = React.useMemo(() => getOddEvenRatio(lottoData), [lottoData]);
   const highLow = React.useMemo(() => getHighLowRatio(lottoData), [lottoData]);
-  const digitStats = React.useMemo(() => getDigitStats(lottoData).sort((a, b) => b.count - a.count), [lottoData]);
+  const twinConsecutive = React.useMemo(() => getTwinConsecutiveStats(lottoData), [lottoData]);
+  const periodicity = React.useMemo(() => getPeriodicityStats(lottoData).slice(0, 5), [lottoData]);
   const globalAccuracy = React.useMemo(() => getGlobalAccuracy(lottoData), [lottoData]);
 
   const [copySuccess, setCopySuccess] = useState(false);
@@ -67,7 +98,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
 • เจาะ 2 ตัว: ${recommendedTwoDigits.join(', ')}
 • ชุด 3 ตัว: ${recommendedThreeDigits.join(', ')}
 ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1]}${topDigits[2]}${predictions[3]?.digit || '9'}` : ''}
-⚡ ประมวลผลสดใหม่จากสถิติตัวจริง 100%`;
+⚡ ประมวลผลและปรับแต่งด้วย AI Auto-Optimizer (สถิติจริง 100%)`;
 
     navigator.clipboard.writeText(textToCopy).then(() => {
       setCopySuccess(true);
@@ -75,15 +106,47 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
     });
   };
 
+  const handleOptimize = () => {
+    setIsOptimizing(true);
+    setOptProgress(0);
+    const interval = setInterval(() => {
+      setOptProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            setIsOptimizing(false);
+            setOptTrigger(t => t + 1);
+          }, 400);
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 100);
+  };
+
+  const handleWeightChange = (key, val) => {
+    const numericVal = parseFloat(val);
+    setCustomWeights(prev => {
+      const updated = { ...prev, [key]: numericVal };
+      const sum = Object.values(updated).reduce((a, b) => a + b, 0);
+      // Normalize sum to 1
+      const normalized = {};
+      Object.keys(updated).forEach(k => {
+        normalized[k] = parseFloat((updated[k] / (sum || 1)).toFixed(3));
+      });
+      return normalized;
+    });
+  };
+
   return (
     <div className="dashboard-grid">
-      {/* Left panel - Main predictions */}
+      {/* Left panel - Main predictions & Tuning */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         {/* Probability recommendations card */}
         <div className="glass-card" style={{ borderLeft: theme.borderLeft }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
             <h2 style={{ fontSize: '20px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ color: theme.primary }}>★</span> เลขเด่นแนะนำงวดถัดไป
+              <span style={{ color: theme.primary }}>🔮</span> เลขเด่นแนะนำงวดถัดไป
             </h2>
             {lottoData && lottoData.length > 0 && (
               <span style={{ fontSize: '12px', color: theme.primary, background: 'rgba(255,255,255,0.03)', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
@@ -92,7 +155,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
             )}
           </div>
 
-          {/* Quick 1-Tap Copy Button for Easy User Experience */}
+          {/* Quick 1-Tap Copy Button */}
           <div style={{ marginBottom: '20px' }}>
             <button
               onClick={handleCopyNumbers}
@@ -160,24 +223,135 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
               </div>
             </div>
           )}
+        </div>
 
-          {/* Easy Beginner Guide Card */}
-          <div style={{
-            marginTop: '20px',
-            background: 'rgba(255, 255, 255, 0.02)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
-            borderRadius: '12px',
-            padding: '14px 18px'
-          }}>
-            <h4 style={{ fontSize: '13px', color: theme.primary, margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              💡 วิธีนำเลขเด็ดไปใช้งานง่ายๆ สำหรับมือใหม่:
-            </h4>
-            <ul style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, paddingLeft: '18px', lineHeight: '1.8' }}>
-              <li><strong>วิ่ง-รูด:</strong> ใช้ลูกบอล 2 ลูกแรก ({topDigits[0]} และ {topDigits[1]}) เหมาะกับสายแทงวิ่งบน-ล่าง</li>
-              <li><strong>2 ตัวเน้น:</strong> นำชุด 2 ตัว ({recommendedTwoDigits[0]}, {recommendedTwoDigits[1]}) ไปเลือกเสี่ยงโชค 2 ตัวบน-ล่าง</li>
-              <li><strong>3 ตัวเต็งโต๊ด:</strong> นำชุด 3 ตัวไปแทง 3 ตัวบนหรือโต๊ดได้ทันที</li>
-            </ul>
+        {/* AI AUTO-TUNING & WEIGHTS DASHBOARD */}
+        <div className="glass-card" style={{ borderLeft: `5px solid #A855F7` }}>
+          <h2 style={{ fontSize: '18px', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#A855F7' }}>⚙️</span> แผงปรับจูนค่าน้ำหนักโมเดล AI Super v4
+          </h2>
+
+          {/* Mode Selector */}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+            {[
+              { id: 'auto', label: '🤖 Auto-Optimizer', icon: '⚡' },
+              { id: 'balanced', label: '⚖️ Balanced', icon: '🤝' },
+              { id: 'recency', label: '📅 Recency Heavy', icon: '⏱️' },
+              { id: 'markov', label: '🔗 Markov Heavy', icon: '🔗' },
+              { id: 'custom', label: '🎛️ Custom Sliders', icon: '🎛️' }
+            ].map(mode => (
+              <button
+                key={mode.id}
+                onClick={() => setTuningMode(mode.id)}
+                style={{
+                  background: tuningMode === mode.id ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255, 255, 255, 0.02)',
+                  border: `1px solid ${tuningMode === mode.id ? '#A855F7' : 'var(--border-card)'}`,
+                  color: '#FFFFFF',
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: tuningMode === mode.id ? '600' : '400',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {mode.icon} {mode.label}
+              </button>
+            ))}
           </div>
+
+          {/* Training / Auto Optimization Trigger Button */}
+          {tuningMode === 'auto' && (
+            <div style={{ marginBottom: '24px' }}>
+              <button
+                onClick={handleOptimize}
+                disabled={isOptimizing}
+                style={{
+                  width: '100%',
+                  padding: '12px 18px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: isOptimizing ? '#4B5563' : 'linear-gradient(135deg, #A855F7 0%, #7C3AED 100%)',
+                  color: '#FFFFFF',
+                  fontWeight: 'bold',
+                  cursor: isOptimizing ? 'default' : 'pointer',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 4px 12px rgba(168, 85, 247, 0.2)'
+                }}
+              >
+                {isOptimizing ? '⚙️ กำลังประมวลผล Auto-Optimization...' : '🚀 รันโมเดลค้นหาค่าน้ำหนักที่ดีที่สุด (Run AI Optimization)'}
+              </button>
+              
+              {isOptimizing && (
+                <div style={{ width: '100%', background: 'rgba(255,255,255,0.05)', height: '6px', borderRadius: '3px', marginTop: '8px', overflow: 'hidden' }}>
+                  <div style={{ width: `${optProgress}%`, height: '100%', background: '#A855F7', transition: 'width 0.1s ease' }}></div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Active Weights visualization */}
+          <div style={{ marginBottom: '16px' }}>
+            <h4 style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 12px 0' }}>
+              📊 ค่าน้ำหนักถ่วงสถิติที่ใช้งานอยู่ในปัจจุบัน (สัดส่วนรวม = 100%):
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
+              {[
+                { label: 'Recency (งวดล่าสุด)', value: activeWeights.wRec, color: '#FF5722' },
+                { label: 'Co-Occurrence (มาคู่กัน)', value: activeWeights.wCo, color: '#4CAF50' },
+                { label: 'Overdue (ไม่มานาน)', value: activeWeights.wOvd, color: '#FFEB3B' },
+                { label: 'Markov (เลขเชื่อมโยง)', value: activeWeights.wMrk, color: '#00BCD4' },
+                { label: 'Positional (เลขหลักสิบ/หน่วย)', value: activeWeights.wPos, color: '#9C27B0' },
+                { label: 'Arithmetic (ผลรวมหลักเลข)', value: activeWeights.wAr, color: '#E91E63' },
+                { label: 'Modulo (ช่วงห่างเศษส่วน)', value: activeWeights.wMod, color: '#3F51B5' }
+              ].map((item, idx) => (
+                <div key={idx} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '8px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{item.label}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color }}></div>
+                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#FFF' }}>{Math.round(item.value * 100)}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom Sliders for manual tuning */}
+          {tuningMode === 'custom' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px', borderTop: '1px solid var(--border-card)', paddingTop: '16px' }}>
+              <h4 style={{ fontSize: '13px', color: '#FFF', margin: '0 0 4px 0' }}>🎛️ ปรับแต่งแถบสไลเดอร์ค่าน้ำหนักสถิติเอง:</h4>
+              {[
+                { key: 'wRec', label: 'Recency (สถิติงวดล่าสุด)', val: customWeights.wRec },
+                { key: 'wCo', label: 'Co-Occurrence (เลขคู่เด่น)', val: customWeights.wCo },
+                { key: 'wOvd', label: 'Overdue (เลขค้างนานสุด)', val: customWeights.wOvd },
+                { key: 'wMrk', label: 'Markov (ความเชื่อมโยงงวด)', val: customWeights.wMrk },
+                { key: 'wPos', label: 'Positional (หลักสิบ/หลักหน่วย)', val: customWeights.wPos },
+                { key: 'wAr', label: 'Arithmetic (ผลรวมผลต่าง)', val: customWeights.wAr },
+                { key: 'wMod', label: 'Modulo (รอบห่างเศษสลาก)', val: customWeights.wMod }
+              ].map(slider => (
+                <div key={slider.key} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ flex: 2, fontSize: '12px', color: 'var(--text-muted)' }}>{slider.label}</div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={slider.val}
+                    onChange={(e) => handleWeightChange(slider.key, e.target.value)}
+                    style={{ flex: 3, accentColor: '#A855F7', height: '4px', background: 'rgba(255,255,255,0.1)' }}
+                  />
+                  <div style={{ flex: 1, fontSize: '13px', fontWeight: 'bold', textAlign: 'right', color: '#A855F7' }}>
+                    {Math.round(slider.val * 100)}%
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Probability Bars Chart */}
@@ -238,12 +412,73 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
           </p>
         </div>
 
+        {/* NEW LAYER: TWINS & CONSECUTIVE ANALYSIS */}
+        <div className="glass-card" style={{ borderLeft: `5px solid #10B981` }}>
+          <h3 style={{ fontSize: '16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🎯 ผลสถิติเลขเบิ้ล & เลขติดกันย้อนหลัง
+          </h3>
+          
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+              <span style={{ color: 'var(--text-muted)' }}>โอกาสเกิดเลขเบิ้ล (เช่น 22, 55):</span>
+              <span style={{ fontWeight: 'bold', color: '#10B981' }}>{twinConsecutive.twinProb}%</span>
+            </div>
+            <div style={{ fontSize: '12px', color: '#FFF', background: 'rgba(255,255,255,0.02)', padding: '6px 10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.04)' }}>
+              📢 {twinConsecutive.twinAdvice}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+              <span style={{ color: 'var(--text-muted)' }}>โอกาสเกิดเลขติดกัน (เช่น 45, 78):</span>
+              <span style={{ fontWeight: 'bold', color: '#10B981' }}>{twinConsecutive.consecutiveProb}%</span>
+            </div>
+            <div style={{ fontSize: '12px', color: '#FFF', background: 'rgba(255,255,255,0.02)', padding: '6px 10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.04)' }}>
+              📢 {twinConsecutive.consecutiveAdvice}
+            </div>
+          </div>
+        </div>
+
+        {/* NEW LAYER: PERIODICITY CYCLE MATRIX */}
+        <div className="glass-card" style={{ borderLeft: `5px solid #FFA500` }}>
+          <h3 style={{ fontSize: '16px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            ⏳ ดัชนีรอบวัฏจักรตัวเลข (เลขตามรอบเด่น)
+          </h3>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 12px 0' }}>
+            วิเคราะห์รอบสถิติการออกซ้ำ เพื่อดูว่าตัวเลขไหนมีความต้องการเข้าสู่วัฏจักรรอบความถี่ของตัวเองสูงสุด
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {periodicity.map((item, idx) => (
+              <div key={idx} style={{ display: 'flex', justifyItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span className="numbers-font" style={{ background: theme.primary, color: '#000', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>
+                    {item.digit}
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '12px', color: '#FFF', fontWeight: '500' }}>{item.status}</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                      ไม่ได้ออกมาแล้ว {item.lastSeen} งวด (รอบซ้ำปกติทุก {item.avgInterval} งวด)
+                    </span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>ดัชนีค้าง</span>
+                  <span style={{ fontSize: '12px', fontWeight: 'bold', color: item.dueScore > 1.2 ? '#FF4500' : '#10B981' }}>
+                    x{item.dueScore}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Odd/Even Ratio */}
         <div className="glass-card">
           <h3 style={{ fontSize: '16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             ⚖️ อัตราส่วน เลขคู่-คี่
           </h3>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+          <div style={{ display: 'flex', justifyItems: 'space-between', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
             <span style={{ color: '#00E5FF' }}>เลขคี่: {oddEven.odd}%</span>
             <span style={{ color: '#FF007F' }}>เลขคู่: {oddEven.even}%</span>
           </div>
@@ -261,7 +496,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
           <h3 style={{ fontSize: '16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             📊 อัตราส่วน เลขสูง-ต่ำ (0-4 / 5-9)
           </h3>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+          <div style={{ display: 'flex', justifyItems: 'space-between', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
             <span style={{ color: 'var(--gold)' }}>เลขสูง (5-9): {highLow.high}%</span>
             <span style={{ color: '#A855F7' }}>เลขต่ำ (0-4): {highLow.low}%</span>
           </div>

@@ -683,19 +683,121 @@ export function getDigitStats(history = []) {
 }
 
 // Calculator 2: Dynamic Probability Model using Upgraded Multi-Agent AI Hybrid Ensemble Model v2
-export function getPredictionStats(history = []) {
-  if (history.length === 0) return [];
+export function getPredictionStats(history = [], tuningMode = 'auto', customWeights = null) {
+  if (history.length === 0) {
+    const fallback = [];
+    fallback.activeWeights = { wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.15, wMod: 0.15 };
+    return fallback;
+  }
 
   // Fallback if data is too small to compute advanced matrices
   if (history.length < 5) {
-    return Array(10).fill(0).map((_, i) => ({
+    const fallback = Array(10).fill(0).map((_, i) => ({
       digit: i,
       probability: 10,
       lastSeen: 1
     }));
+    fallback.activeWeights = { wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.15, wMod: 0.15 };
+    return fallback;
   }
 
-  const size = Math.min(history.length, 25);
+  // --- ARRANGE AI TUNING MODE WEIGHTS ---
+  let activeConfig = null;
+
+  if (tuningMode === 'custom' && customWeights) {
+    activeConfig = customWeights;
+  } else if (tuningMode === 'balanced') {
+    activeConfig = { wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.15, wMod: 0.15 };
+  } else if (tuningMode === 'recency') {
+    activeConfig = { wRec: 0.55, wCo: 0.10, wOvd: 0.05, wMrk: 0.10, wPos: 0.10, wAr: 0.05, wMod: 0.05 };
+  } else if (tuningMode === 'markov') {
+    activeConfig = { wRec: 0.10, wCo: 0.10, wOvd: 0.05, wMrk: 0.55, wPos: 0.10, wAr: 0.05, wMod: 0.05 };
+  } else {
+    // AUTO OPTIMIZATION (Random Search over weight space)
+    let bestConfig = { wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.15, wMod: 0.15 };
+    let maxHits = -1;
+
+    const candidateConfigs = [
+      { wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.15, wMod: 0.15 },
+      { wRec: 0.45, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.05, wMod: 0.05 },
+      { wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.35, wPos: 0.10, wAr: 0.05, wMod: 0.05 },
+      { wRec: 0.20, wCo: 0.40, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.05, wMod: 0.05 },
+      { wRec: 0.20, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.30, wAr: 0.05, wMod: 0.10 }
+    ];
+
+    for (let j = 0; j < 80; j++) {
+      const randWeights = Array(7).fill(0).map(() => Math.random());
+      const sum = randWeights.reduce((a, b) => a + b, 0);
+      candidateConfigs.push({
+        wRec: randWeights[0] / sum,
+        wCo: randWeights[1] / sum,
+        wOvd: randWeights[2] / sum,
+        wMrk: randWeights[3] / sum,
+        wPos: randWeights[4] / sum,
+        wAr: randWeights[5] / sum,
+        wMod: randWeights[6] / sum
+      });
+    }
+
+    candidateConfigs.forEach(config => {
+      let hits = 0;
+      const backtestLimit = Math.min(history.length - 2, 10);
+      for (let b = 1; b <= backtestLimit; b++) {
+        const precedingData = history.slice(b + 1);
+        if (precedingData.length < 3) continue;
+
+        const bRecCounts = Array(10).fill(0);
+        let bTotalW = 0;
+        const bSize = Math.min(precedingData.length, 15);
+        for (let i = 0; i < bSize; i++) {
+          const draw = precedingData[i];
+          const w = Math.pow(0.86, i);
+          const d1 = draw.twoDigitBack;
+          if (d1 && d1.length === 2) {
+            bRecCounts[parseInt(d1[0], 10)] += w;
+            bRecCounts[parseInt(d1[1], 10)] += w;
+            bTotalW += (w * 2);
+          }
+        }
+        const bRecScores = bRecCounts.map(count => count / (bTotalW || 1));
+        
+        const bOvdGaps = Array(10).fill(99);
+        for (let d = 0; d < 10; d++) {
+          for (let i = 0; i < precedingData.length; i++) {
+            const d1 = precedingData[i].twoDigitBack;
+            if (d1 && (parseInt(d1[0], 10) === d || parseInt(d1[1], 10) === d)) {
+              bOvdGaps[d] = i;
+              break;
+            }
+          }
+        }
+        const bOvdScores = bOvdGaps.map(gap => Math.min(gap, 15) / 15);
+
+        const combined = [];
+        for (let d = 0; d < 10; d++) {
+          const val = (bRecScores[d] * config.wRec) + (bOvdScores[d] * config.wOvd);
+          combined.push({ digit: d, score: val });
+        }
+        combined.sort((x, y) => y.score - x.score);
+        const top3 = combined.slice(0, 3).map(x => x.digit);
+
+        const actual = history[b].twoDigitBack;
+        if (actual && actual.length === 2) {
+          const actD1 = parseInt(actual[0], 10);
+          const actD2 = parseInt(actual[1], 10);
+          if (top3.includes(actD1)) hits++;
+          if (top3.includes(actD2) && actD1 !== actD2) hits++;
+        }
+      }
+
+      if (hits > maxHits) {
+        maxHits = hits;
+        bestConfig = config;
+      }
+    });
+
+    activeConfig = bestConfig;
+  }
 
   // --- LAYER 1: DIRECT LATEST DRAW MOMENTUM BOOST ---
   const recencyCounts = Array(10).fill(0);
@@ -703,16 +805,15 @@ export function getPredictionStats(history = []) {
   const recencyLimit = Math.min(history.length, 10);
   for (let i = 0; i < recencyLimit; i++) {
     const draw = history[i];
-    // Steep decay + 3.0x bonus weight on latest draw so numbers update dynamically on every new result
     const weight = Math.pow(0.35, i) * (i === 0 ? 3.0 : i === 1 ? 1.8 : 1.0);
     const d1 = draw.twoDigitBack;
     if (d1 && d1.length === 2) {
-      recencyCounts[parseInt(d1[0])] += weight;
-      recencyCounts[parseInt(d1[1])] += weight;
+      recencyCounts[parseInt(d1[0], 10)] += weight;
+      recencyCounts[parseInt(d1[1], 10)] += weight;
       totalWeights += (weight * 2);
     }
     if (draw.threeDigitBack && draw.threeDigitBack.length === 3) {
-      const d3_0 = parseInt(draw.threeDigitBack[0]);
+      const d3_0 = parseInt(draw.threeDigitBack[0], 10);
       recencyCounts[d3_0] += (weight * 0.5);
       totalWeights += (weight * 0.5);
     }
@@ -724,8 +825,8 @@ export function getPredictionStats(history = []) {
   history.forEach(draw => {
     const d = draw.twoDigitBack;
     if (d && d.length === 2) {
-      const u = parseInt(d[0]);
-      const v = parseInt(d[1]);
+      const u = parseInt(d[0], 10);
+      const v = parseInt(d[1], 10);
       coOccur[u][v]++;
       coOccur[v][u]++;
     }
@@ -746,7 +847,7 @@ export function getPredictionStats(history = []) {
   for (let d = 0; d < 10; d++) {
     for (let i = 0; i < history.length; i++) {
       const d1 = history[i].twoDigitBack;
-      if (d1 && (parseInt(d1[0]) === d || parseInt(d1[1]) === d)) {
+      if (d1 && (parseInt(d1[0], 10) === d || parseInt(d1[1], 10) === d)) {
         lastSeen[d] = i;
         break;
       }
@@ -760,10 +861,10 @@ export function getPredictionStats(history = []) {
     const currentDraw = history[i].twoDigitBack;
     const nextDraw = history[i + 1].twoDigitBack;
     if (currentDraw && currentDraw.length === 2 && nextDraw && nextDraw.length === 2) {
-      const cur1 = parseInt(currentDraw[0]);
-      const cur2 = parseInt(currentDraw[1]);
-      const nxt1 = parseInt(nextDraw[0]);
-      const nxt2 = parseInt(nextDraw[1]);
+      const cur1 = parseInt(currentDraw[0], 10);
+      const cur2 = parseInt(currentDraw[1], 10);
+      const nxt1 = parseInt(nextDraw[0], 10);
+      const nxt2 = parseInt(nextDraw[1], 10);
       
       transitionMatrix[nxt1][cur1]++;
       transitionMatrix[nxt1][cur2]++;
@@ -775,8 +876,8 @@ export function getPredictionStats(history = []) {
   const markovScores = Array(10).fill(0);
   const latestDraw = history[0].twoDigitBack;
   if (latestDraw && latestDraw.length === 2) {
-    const lat1 = parseInt(latestDraw[0]);
-    const lat2 = parseInt(latestDraw[1]);
+    const lat1 = parseInt(latestDraw[0], 10);
+    const lat2 = parseInt(latestDraw[1], 10);
     for (let d = 0; d < 10; d++) {
       const transProb = (transitionMatrix[lat1][d] + transitionMatrix[lat2][d]) / 2;
       markovScores[d] = transProb;
@@ -793,8 +894,8 @@ export function getPredictionStats(history = []) {
     const d = history[i].twoDigitBack;
     if (d && d.length === 2) {
       const w = Math.pow(0.90, i);
-      tensCounts[parseInt(d[0])] += w;
-      onesCounts[parseInt(d[1])] += w;
+      tensCounts[parseInt(d[0], 10)] += w;
+      onesCounts[parseInt(d[1], 10)] += w;
     }
   }
   const positionalScores = Array(10).fill(0);
@@ -811,7 +912,7 @@ export function getPredictionStats(history = []) {
     const d = history[i].twoDigitBack;
     if (d && d.length === 2) {
       const w = Math.pow(0.90, i);
-      const digitSum = parseInt(d[0]) + parseInt(d[1]);
+      const digitSum = parseInt(d[0], 10) + parseInt(d[1], 10);
       sumCounts[digitSum] += w;
       sumWeights += w;
     }
@@ -834,7 +935,7 @@ export function getPredictionStats(history = []) {
     const d = history[i].twoDigitBack;
     if (d && d.length === 2) {
       const w = Math.pow(0.88, i);
-      const diff = Math.abs(parseInt(d[0]) - parseInt(d[1]));
+      const diff = Math.abs(parseInt(d[0], 10) - parseInt(d[1], 10));
       const mod = diff % 5;
       for (let digit = 0; digit < 10; digit++) {
         if (digit % 5 === mod) {
@@ -846,95 +947,20 @@ export function getPredictionStats(history = []) {
   const sumMod = moduloCounts.reduce((a, b) => a + b, 0);
   const normalizedModulo = moduloCounts.map(val => val / (sumMod || 1));
 
-  // --- SELF-TUNING WEIGHT OPTIMIZATION ENGINE (LOCAL BACKTEST GRID SEARCH v3) ---
-  const configurations = [
-    { name: "Agent A (Recency Momentum Heavy)", wRec: 0.45, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.05, wMod: 0.05 },
-    { name: "Agent B (Markov Transition Heavy)", wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.35, wPos: 0.10, wAr: 0.05, wMod: 0.05 },
-    { name: "Agent C (Co-occurrence Heavy)", wRec: 0.25, wCo: 0.35, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.05, wMod: 0.05 },
-    { name: "Agent D (Positional Heavy)", wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.30, wAr: 0.05, wMod: 0.05 },
-    { name: "Agent E (Arithmetic Sum Heavy)", wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.25, wMod: 0.05 },
-    { name: "Agent F (Modulo Interval Heavy)", wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.05, wMod: 0.25 }
-  ];
+  // Combine scores with active weights
+  const optimizedScores = [];
+  for (let d = 0; d < 10; d++) {
+    optimizedScores.push(
+      (recencyScores[d] * activeConfig.wRec) + 
+      (normalizedCoOccur[d] * activeConfig.wCo) + 
+      (overdueScores[d] * activeConfig.wOvd) + 
+      (normalizedMarkov[d] * activeConfig.wMrk) +
+      (normalizedPositional[d] * activeConfig.wPos) +
+      (normalizedArithmetic[d] * activeConfig.wAr) +
+      (normalizedModulo[d] * activeConfig.wMod)
+    );
+  }
 
-  const getCombinedScores = (c) => {
-    const scores = [];
-    for (let d = 0; d < 10; d++) {
-      scores.push(
-        (recencyScores[d] * c.wRec) + 
-        (normalizedCoOccur[d] * c.wCo) + 
-        (overdueScores[d] * c.wOvd) + 
-        (normalizedMarkov[d] * c.wMrk) +
-        (normalizedPositional[d] * c.wPos) +
-        (normalizedArithmetic[d] * c.wAr) +
-        (normalizedModulo[d] * c.wMod)
-      );
-    }
-    return scores;
-  };
-
-  let bestConfig = configurations[0];
-  let maxHits = -1;
-
-  // Backtest config agents over the last 10 draws to choose the best weights
-  configurations.forEach(config => {
-    let hits = 0;
-    const backtestLimit = Math.min(history.length - 2, 10);
-    for (let b = 1; b <= backtestLimit; b++) {
-      const precedingData = history.slice(b + 1);
-      if (precedingData.length < 3) continue;
-
-      const bSize = Math.min(precedingData.length, 25);
-      const bRecCounts = Array(10).fill(0);
-      let bTotalW = 0;
-      for (let i = 0; i < bSize; i++) {
-        const draw = precedingData[i];
-        const w = Math.pow(0.86, i);
-        const d1 = draw.twoDigitBack;
-        if (d1 && d1.length === 2) {
-          bRecCounts[parseInt(d1[0])] += w;
-          bRecCounts[parseInt(d1[1])] += w;
-          bTotalW += (w * 2);
-        }
-      }
-      const bRecScores = bRecCounts.map(count => count / (bTotalW || 1));
-      
-      const bOvdGaps = Array(10).fill(99);
-      for (let d = 0; d < 10; d++) {
-        for (let i = 0; i < precedingData.length; i++) {
-          const d1 = precedingData[i].twoDigitBack;
-          if (d1 && (parseInt(d1[0]) === d || parseInt(d1[1]) === d)) {
-            bOvdGaps[d] = i;
-            break;
-          }
-        }
-      }
-      const bOvdScores = bOvdGaps.map(gap => Math.min(gap, 15) / 15);
-
-      const combined = [];
-      for (let d = 0; d < 10; d++) {
-        const val = (bRecScores[d] * config.wRec) + (bOvdScores[d] * config.wOvd);
-        combined.push({ digit: d, score: val });
-      }
-      combined.sort((x, y) => y.score - x.score);
-      const top3 = combined.slice(0, 3).map(x => x.digit);
-
-      const actual = history[b].twoDigitBack;
-      if (actual && actual.length === 2) {
-        const actD1 = parseInt(actual[0]);
-        const actD2 = parseInt(actual[1]);
-        if (top3.includes(actD1)) hits++;
-        if (top3.includes(actD2) && actD1 !== actD2) hits++;
-      }
-    }
-
-    if (hits > maxHits) {
-      maxHits = hits;
-      bestConfig = config;
-    }
-  });
-
-  // Apply best-performing configuration
-  const optimizedScores = getCombinedScores(bestConfig);
   const totalScoreSum = optimizedScores.reduce((sum, score) => sum + score, 0);
 
   const predictionList = [];
@@ -948,7 +974,110 @@ export function getPredictionStats(history = []) {
     });
   }
 
-  return predictionList.sort((a, b) => b.score - a.score);
+  const sortedList = predictionList.sort((a, b) => b.score - a.score);
+  sortedList.activeWeights = activeConfig;
+  return sortedList;
+}
+
+// Calculator 3: Consecutive & Twin Number analysis
+export function getTwinConsecutiveStats(history = []) {
+  if (history.length === 0) return { twinProb: 10, consecutiveProb: 15, twinAdvice: "ปกติ", consecutiveAdvice: "ปกติ" };
+
+  let twinCount = 0;
+  let consecutiveCount = 0;
+  let total = 0;
+
+  history.forEach(draw => {
+    const d = draw.twoDigitBack;
+    if (d && d.length === 2) {
+      total++;
+      const d1 = parseInt(d[0], 10);
+      const d2 = parseInt(d[1], 10);
+
+      // Check twin: e.g. 11, 22
+      if (d1 === d2) {
+        twinCount++;
+      }
+
+      // Check consecutive: e.g. 12, 23, 89, 90, 21, 32...
+      const diff = Math.abs(d1 - d2);
+      if (diff === 1 || diff === 9) { // 9 for 9-0 wrap around
+        consecutiveCount++;
+      }
+    }
+  });
+
+  const twinProb = Math.round((twinCount / (total || 1)) * 100);
+  const consecutiveProb = Math.round((consecutiveCount / (total || 1)) * 100);
+
+  let twinAdvice = "มีแนวโน้มต่ำ (แนะนำให้เน้นเลขไม่ซ้ำ)";
+  if (twinProb > 25) twinAdvice = "มีแนวโน้มสูงมาก! (แนะนำให้กันเลขเบิ้ล)";
+  else if (twinProb > 12) twinAdvice = "แนวโน้มปานกลาง (สามารถกันเลขเบิ้ลได้เล็กน้อย)";
+
+  let consecutiveAdvice = "มีแนวโน้มต่ำ (เน้นสุ่มเลขห่างกัน)";
+  if (consecutiveProb > 30) consecutiveAdvice = "มีแนวโน้มสูงมาก! (แนะนำให้เจาะชุดเลขติดกัน เช่น 45, 78)";
+  else if (consecutiveProb > 15) consecutiveAdvice = "แนวโน้มปานกลาง (มีโอกาสออกเลขติดกันพอควร)";
+
+  return {
+    twinProb,
+    consecutiveProb,
+    twinAdvice,
+    consecutiveAdvice
+  };
+}
+
+// Calculator 4: Cycle Periodicity Analysis
+export function getPeriodicityStats(history = []) {
+  const digitIntervals = Array(10).fill(0).map(() => []);
+  const lastSeenIndex = Array(10).fill(99);
+
+  // Analyze intervals
+  for (let d = 0; d < 10; d++) {
+    let lastIndex = -1;
+    for (let i = 0; i < history.length; i++) {
+      const draw = history[i];
+      const d1 = draw.twoDigitBack;
+      if (d1 && d1.length === 2) {
+        const actD1 = parseInt(d1[0], 10);
+        const actD2 = parseInt(d1[1], 10);
+        if (actD1 === d || actD2 === d) {
+          if (lastIndex !== -1) {
+            digitIntervals[d].push(i - lastIndex);
+          } else {
+            lastSeenIndex[d] = i;
+          }
+          lastIndex = i;
+        }
+      }
+    }
+  }
+
+  // Calculate average interval and due score for each digit
+  const periodicityList = [];
+  for (let d = 0; d < 10; d++) {
+    const intervals = digitIntervals[d];
+    const avgInterval = intervals.length > 0 
+      ? parseFloat((intervals.reduce((sum, val) => sum + val, 0) / intervals.length).toFixed(1))
+      : 8.5; // fallback average cycle
+    
+    const lastSeen = lastSeenIndex[d];
+    const dueScore = parseFloat((lastSeen / (avgInterval || 1)).toFixed(2));
+    
+    let status = "กำลังสะสมพลังงาน";
+    if (dueScore > 1.4) status = "🔥 โอกาสมาสูงมาก (Overdue)";
+    else if (dueScore > 0.9) status = "⭐ อยู่ในรอบวัฏจักร (Due)";
+    else if (dueScore < 0.4) status = "เพิ่งออกไป (พักตัว)";
+
+    periodicityList.push({
+      digit: d,
+      avgInterval,
+      lastSeen,
+      dueScore,
+      status
+    });
+  }
+
+  return periodicityList.sort((a, b) => b.dueScore - a.dueScore);
 }
 
 // Calculator 3: Odd vs Even
