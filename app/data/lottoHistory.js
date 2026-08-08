@@ -718,9 +718,11 @@ export function getDigitStats(history = []) {
 
 // Calculator 2: Dynamic Probability Model using Upgraded Multi-Agent AI Hybrid Ensemble Model v2
 export function getPredictionStats(history = [], tuningMode = 'auto', customWeights = null) {
+  const defaultWeights = { wRec: 0.20, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.10, wMod: 0.10, wBay: 0.10, wFib: 0.05 };
+  
   if (history.length === 0) {
     const fallback = [];
-    fallback.activeWeights = { wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.15, wMod: 0.15 };
+    fallback.activeWeights = defaultWeights;
     return fallback;
   }
 
@@ -731,7 +733,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       probability: 10,
       lastSeen: 1
     }));
-    fallback.activeWeights = { wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.15, wMod: 0.15 };
+    fallback.activeWeights = defaultWeights;
     return fallback;
   }
 
@@ -741,26 +743,31 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
   if (tuningMode === 'custom' && customWeights) {
     activeConfig = customWeights;
   } else if (tuningMode === 'balanced') {
-    activeConfig = { wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.15, wMod: 0.15 };
+    activeConfig = defaultWeights;
   } else if (tuningMode === 'recency') {
-    activeConfig = { wRec: 0.55, wCo: 0.10, wOvd: 0.05, wMrk: 0.10, wPos: 0.10, wAr: 0.05, wMod: 0.05 };
+    activeConfig = { wRec: 0.45, wCo: 0.10, wOvd: 0.05, wMrk: 0.10, wPos: 0.05, wAr: 0.05, wMod: 0.05, wBay: 0.10, wFib: 0.05 };
   } else if (tuningMode === 'markov') {
-    activeConfig = { wRec: 0.10, wCo: 0.10, wOvd: 0.05, wMrk: 0.55, wPos: 0.10, wAr: 0.05, wMod: 0.05 };
+    activeConfig = { wRec: 0.10, wCo: 0.05, wOvd: 0.05, wMrk: 0.45, wPos: 0.05, wAr: 0.05, wMod: 0.05, wBay: 0.15, wFib: 0.05 };
   } else {
-    // AUTO OPTIMIZATION (Random Search over weight space)
-    let bestConfig = { wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.15, wMod: 0.15 };
+    // AUTO OPTIMIZATION (Random Search over weight space with 150 candidates)
+    let bestConfig = defaultWeights;
     let maxHits = -1;
 
     const candidateConfigs = [
-      { wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.15, wMod: 0.15 },
-      { wRec: 0.45, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.05, wMod: 0.05 },
-      { wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.35, wPos: 0.10, wAr: 0.05, wMod: 0.05 },
-      { wRec: 0.20, wCo: 0.40, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.05, wMod: 0.05 },
-      { wRec: 0.20, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.30, wAr: 0.05, wMod: 0.10 }
+      defaultWeights,
+      { wRec: 0.35, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.05, wAr: 0.05, wMod: 0.05, wBay: 0.10, wFib: 0.05 },
+      { wRec: 0.15, wCo: 0.10, wOvd: 0.05, wMrk: 0.35, wPos: 0.05, wAr: 0.05, wMod: 0.05, wBay: 0.15, wFib: 0.05 },
+      { wRec: 0.15, wCo: 0.35, wOvd: 0.05, wMrk: 0.10, wPos: 0.05, wAr: 0.05, wMod: 0.05, wBay: 0.15, wFib: 0.05 },
+      { wRec: 0.15, wCo: 0.10, wOvd: 0.05, wMrk: 0.10, wPos: 0.25, wAr: 0.05, wMod: 0.05, wBay: 0.20, wFib: 0.05 }
     ];
 
-    for (let j = 0; j < 80; j++) {
-      const randWeights = Array(7).fill(0).map(() => Math.random());
+    for (let j = 0; j < 150; j++) {
+      const randWeights = Array(9).fill(0).map(() => Math.random());
+      randWeights[0] *= 2.0; // wRec
+      randWeights[1] *= 1.5; // wCo
+      randWeights[3] *= 1.5; // wMrk
+      randWeights[7] *= 1.5; // wBay
+      
       const sum = randWeights.reduce((a, b) => a + b, 0);
       candidateConfigs.push({
         wRec: randWeights[0] / sum,
@@ -769,7 +776,9 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
         wMrk: randWeights[3] / sum,
         wPos: randWeights[4] / sum,
         wAr: randWeights[5] / sum,
-        wMod: randWeights[6] / sum
+        wMod: randWeights[6] / sum,
+        wBay: randWeights[7] / sum,
+        wFib: randWeights[8] / sum
       });
     }
 
@@ -778,14 +787,15 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       const backtestLimit = Math.min(history.length - 2, 10);
       for (let b = 1; b <= backtestLimit; b++) {
         const precedingData = history.slice(b + 1);
-        if (precedingData.length < 3) continue;
+        if (precedingData.length < 5) continue;
 
+        // Recency
         const bRecCounts = Array(10).fill(0);
         let bTotalW = 0;
-        const bSize = Math.min(precedingData.length, 15);
+        const bSize = Math.min(precedingData.length, 12);
         for (let i = 0; i < bSize; i++) {
           const draw = precedingData[i];
-          const w = Math.pow(0.86, i);
+          const w = Math.pow(0.85, i);
           const d1 = draw.twoDigitBack;
           if (d1 && d1.length === 2) {
             bRecCounts[parseInt(d1[0], 10)] += w;
@@ -795,6 +805,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
         }
         const bRecScores = bRecCounts.map(count => count / (bTotalW || 1));
         
+        // Overdue
         const bOvdGaps = Array(10).fill(99);
         for (let d = 0; d < 10; d++) {
           for (let i = 0; i < precedingData.length; i++) {
@@ -807,9 +818,172 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
         }
         const bOvdScores = bOvdGaps.map(gap => Math.min(gap, 15) / 15);
 
+        // Co-occurrence
+        const bCoOccur = Array(10).fill(0).map(() => Array(10).fill(0));
+        precedingData.forEach(draw => {
+          const d = draw.twoDigitBack;
+          if (d && d.length === 2) {
+            const u = parseInt(d[0], 10);
+            const v = parseInt(d[1], 10);
+            bCoOccur[u][v]++;
+            bCoOccur[v][u]++;
+          }
+        });
+        const bCoScores = Array(10).fill(0);
+        for (let u = 0; u < 10; u++) {
+          let partnerSum = 0;
+          for (let v = 0; v < 10; v++) {
+            partnerSum += bCoOccur[u][v];
+          }
+          bCoScores[u] = partnerSum / (precedingData.length || 1);
+        }
+        const sumBCo = bCoScores.reduce((a, b) => a + b, 0);
+        const bCoOccurScores = bCoScores.map(val => val / (sumBCo || 1));
+
+        // Markov
+        const bTransitionMatrix = Array(10).fill(0).map(() => Array(10).fill(0));
+        for (let i = 0; i < precedingData.length - 1; i++) {
+          const currentDraw = precedingData[i].twoDigitBack;
+          const nextDraw = precedingData[i + 1].twoDigitBack;
+          if (currentDraw && currentDraw.length === 2 && nextDraw && nextDraw.length === 2) {
+            const cur1 = parseInt(currentDraw[0], 10);
+            const cur2 = parseInt(currentDraw[1], 10);
+            const nxt1 = parseInt(nextDraw[0], 10);
+            const nxt2 = parseInt(nextDraw[1], 10);
+            bTransitionMatrix[nxt1][cur1]++;
+            bTransitionMatrix[nxt1][cur2]++;
+            bTransitionMatrix[nxt2][cur1]++;
+            bTransitionMatrix[nxt2][cur2]++;
+          }
+        }
+        const bMarkScores = Array(10).fill(0);
+        const bLatestDraw = precedingData[0].twoDigitBack;
+        if (bLatestDraw && bLatestDraw.length === 2) {
+          const lat1 = parseInt(bLatestDraw[0], 10);
+          const lat2 = parseInt(bLatestDraw[1], 10);
+          for (let d = 0; d < 10; d++) {
+            bMarkScores[d] = (bTransitionMatrix[lat1][d] + bTransitionMatrix[lat2][d]) / 2;
+          }
+        }
+        const sumBMark = bMarkScores.reduce((a, b) => a + b, 0);
+        const bMarkovScores = bMarkScores.map(val => val / (sumBMark || 1));
+
+        // Positional
+        const bTensCounts = Array(10).fill(0);
+        const bOnesCounts = Array(10).fill(0);
+        const bPosLimit = Math.min(precedingData.length, 12);
+        for (let i = 0; i < bPosLimit; i++) {
+          const d = precedingData[i].twoDigitBack;
+          if (d && d.length === 2) {
+            const w = Math.pow(0.90, i);
+            bTensCounts[parseInt(d[0], 10)] += w;
+            bOnesCounts[parseInt(d[1], 10)] += w;
+          }
+        }
+        const bPosScores = Array(10).fill(0);
+        for (let d = 0; d < 10; d++) {
+          bPosScores[d] = (bTensCounts[d] + bOnesCounts[d]) / 2;
+        }
+        const sumBPos = bPosScores.reduce((a, b) => a + b, 0);
+        const bPositionalScores = bPosScores.map(val => val / (sumBPos || 1));
+
+        // Arithmetic
+        const bSumCounts = Array(19).fill(0);
+        let bSumWeights = 0;
+        for (let i = 0; i < bPosLimit; i++) {
+          const d = precedingData[i].twoDigitBack;
+          if (d && d.length === 2) {
+            const w = Math.pow(0.90, i);
+            const digitSum = parseInt(d[0], 10) + parseInt(d[1], 10);
+            bSumCounts[digitSum] += w;
+            bSumWeights += w;
+          }
+        }
+        const bSumProbabilities = bSumCounts.map(count => count / (bSumWeights || 1));
+        const bArithScores = Array(10).fill(0);
+        for (let d = 0; d < 10; d++) {
+          let scoreSum = 0;
+          for (let other = 0; other < 10; other++) {
+            scoreSum += bSumProbabilities[d + other];
+          }
+          bArithScores[d] = scoreSum / 10;
+        }
+        const sumBArith = bArithScores.reduce((a, b) => a + b, 0);
+        const bArithmeticScores = bArithScores.map(val => val / (sumBArith || 1));
+
+        // Modulo
+        const bModCounts = Array(10).fill(0);
+        for (let i = 0; i < bPosLimit; i++) {
+          const d = precedingData[i].twoDigitBack;
+          if (d && d.length === 2) {
+            const w = Math.pow(0.88, i);
+            const diff = Math.abs(parseInt(d[0], 10) - parseInt(d[1], 10));
+            const mod = diff % 5;
+            for (let digit = 0; digit < 10; digit++) {
+              if (digit % 5 === mod) {
+                bModCounts[digit] += w;
+              }
+            }
+          }
+        }
+        const sumBMod = bModCounts.reduce((a, b) => a + b, 0);
+        const bModuloScores = bModCounts.map(val => val / (sumBMod || 1));
+
+        // Bayesian Conditional Probability
+        const getOEStateLocal = (dStr) => {
+          if (!dStr || dStr.length !== 2) return 0;
+          return (parseInt(dStr[0], 10) % 2) * 2 + (parseInt(dStr[1], 10) % 2);
+        };
+        const bStateCounts = Array(4).fill(0);
+        const bDigitStateFreqs = Array(10).fill(0).map(() => Array(4).fill(0));
+        for (let i = 0; i < precedingData.length - 1; i++) {
+          const currentOE = getOEStateLocal(precedingData[i].twoDigitBack);
+          const prevOE = getOEStateLocal(precedingData[i + 1].twoDigitBack);
+          bStateCounts[prevOE]++;
+          const cur = precedingData[i].twoDigitBack;
+          if (cur && cur.length === 2) {
+            bDigitStateFreqs[parseInt(cur[0], 10)][prevOE]++;
+            bDigitStateFreqs[parseInt(cur[1], 10)][prevOE]++;
+          }
+        }
+        const bLatestOE = getOEStateLocal(precedingData[0].twoDigitBack);
+        const bBayScores = Array(10).fill(0);
+        for (let d = 0; d < 10; d++) {
+          const stateCount = bStateCounts[bLatestOE];
+          bBayScores[d] = stateCount > 0 ? (bDigitStateFreqs[d][bLatestOE] / stateCount) : 0.1;
+        }
+        const sumBBay = bBayScores.reduce((a, b) => a + b, 0);
+        const bBayesianScores = bBayScores.map(val => val / (sumBBay || 1));
+
+        // Fibonacci
+        const fibs = [1, 2, 3, 5, 8, 13, 21, 34];
+        const bFibScores = Array(10).fill(0);
+        for (let d = 0; d < 10; d++) {
+          const gap = bOvdGaps[d];
+          if (fibs.includes(gap)) {
+            if (gap === 5 || gap === 8 || gap === 13) bFibScores[d] = 1.0;
+            else if (gap === 3 || gap === 21) bFibScores[d] = 0.7;
+            else bFibScores[d] = 0.4;
+          } else {
+            bFibScores[d] = 0.05;
+          }
+        }
+        const sumBFib = bFibScores.reduce((a, b) => a + b, 0);
+        const bFibonacciScores = bFibScores.map(val => val / (sumBFib || 1));
+
+        // Combine
         const combined = [];
         for (let d = 0; d < 10; d++) {
-          const val = (bRecScores[d] * config.wRec) + (bOvdScores[d] * config.wOvd);
+          const val = 
+            (bRecScores[d] * config.wRec) + 
+            (bCoOccurScores[d] * config.wCo) + 
+            (bOvdScores[d] * config.wOvd) + 
+            (bMarkovScores[d] * config.wMrk) +
+            (bPositionalScores[d] * config.wPos) +
+            (bArithmeticScores[d] * config.wAr) +
+            (bModuloScores[d] * config.wMod) +
+            (bBayesianScores[d] * config.wBay) +
+            (bFibonacciScores[d] * config.wFib);
           combined.push({ digit: d, score: val });
         }
         combined.sort((x, y) => y.score - x.score);
@@ -981,6 +1155,48 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
   const sumMod = moduloCounts.reduce((a, b) => a + b, 0);
   const normalizedModulo = moduloCounts.map(val => val / (sumMod || 1));
 
+  // --- LAYER 8: BAYESIAN CONDITIONAL PROBABILITY ---
+  const getOEState = (dStr) => {
+    if (!dStr || dStr.length !== 2) return 0;
+    return (parseInt(dStr[0], 10) % 2) * 2 + (parseInt(dStr[1], 10) % 2);
+  };
+  const stateCounts = Array(4).fill(0);
+  const digitStateFrequencies = Array(10).fill(0).map(() => Array(4).fill(0));
+  for (let i = 0; i < history.length - 1; i++) {
+    const currentOE = getOEState(history[i].twoDigitBack);
+    const prevOE = getOEState(history[i + 1].twoDigitBack);
+    stateCounts[prevOE]++;
+    const cur = history[i].twoDigitBack;
+    if (cur && cur.length === 2) {
+      digitStateFrequencies[parseInt(cur[0], 10)][prevOE]++;
+      digitStateFrequencies[parseInt(cur[1], 10)][prevOE]++;
+    }
+  }
+  const latestOE = getOEState(history[0].twoDigitBack);
+  const bayesianScores = Array(10).fill(0);
+  for (let d = 0; d < 10; d++) {
+    const stateCount = stateCounts[latestOE];
+    bayesianScores[d] = stateCount > 0 ? (digitStateFrequencies[d][latestOE] / stateCount) : 0.1;
+  }
+  const sumBayes = bayesianScores.reduce((a, b) => a + b, 0);
+  const normalizedBayes = bayesianScores.map(val => val / (sumBayes || 1));
+
+  // --- LAYER 9: FIBONACCI RESONANCE CYCLE BOOST ---
+  const fibonacciNumbers = [1, 2, 3, 5, 8, 13, 21, 34];
+  const fibonacciScores = Array(10).fill(0);
+  for (let d = 0; d < 10; d++) {
+    const gap = lastSeen[d];
+    if (fibonacciNumbers.includes(gap)) {
+      if (gap === 5 || gap === 8 || gap === 13) fibonacciScores[d] = 1.0;
+      else if (gap === 3 || gap === 21) fibonacciScores[d] = 0.7;
+      else fibonacciScores[d] = 0.4;
+    } else {
+      fibonacciScores[d] = 0.05;
+    }
+  }
+  const sumFib = fibonacciScores.reduce((a, b) => a + b, 0);
+  const normalizedFibonacci = fibonacciScores.map(val => val / (sumFib || 1));
+
   // Combine scores with active weights
   const optimizedScores = [];
   for (let d = 0; d < 10; d++) {
@@ -991,7 +1207,9 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       (normalizedMarkov[d] * activeConfig.wMrk) +
       (normalizedPositional[d] * activeConfig.wPos) +
       (normalizedArithmetic[d] * activeConfig.wAr) +
-      (normalizedModulo[d] * activeConfig.wMod)
+      (normalizedModulo[d] * activeConfig.wMod) +
+      (normalizedBayes[d] * activeConfig.wBay) +
+      (normalizedFibonacci[d] * activeConfig.wFib)
     );
   }
 

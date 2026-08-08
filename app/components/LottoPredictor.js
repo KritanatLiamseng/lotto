@@ -14,13 +14,15 @@ import {
 export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
   const [tuningMode, setTuningMode] = useState('auto'); // 'auto', 'balanced', 'recency', 'markov', 'custom'
   const [customWeights, setCustomWeights] = useState({
-    wRec: 0.25,
+    wRec: 0.20,
     wCo: 0.15,
     wOvd: 0.05,
     wMrk: 0.15,
     wPos: 0.10,
-    wAr: 0.15,
-    wMod: 0.15
+    wAr: 0.10,
+    wMod: 0.10,
+    wBay: 0.10,
+    wFib: 0.05
   });
 
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -33,7 +35,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
   }, [lottoData, tuningMode, customWeights, optTrigger]);
 
   const activeWeights = predictions.activeWeights || {
-    wRec: 0.25, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.15, wMod: 0.15
+    wRec: 0.20, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.10, wMod: 0.10, wBay: 0.10, wFib: 0.05
   };
 
   const oddEven = React.useMemo(() => getOddEvenRatio(lottoData), [lottoData]);
@@ -98,7 +100,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
 • เจาะ 2 ตัว: ${recommendedTwoDigits.join(', ')}
 • ชุด 3 ตัว: ${recommendedThreeDigits.join(', ')}
 ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1]}${topDigits[2]}${predictions[3]?.digit || '9'}` : ''}
-⚡ ประมวลผลและปรับแต่งด้วย AI Auto-Optimizer (สถิติจริง 100%)`;
+⚡ ประมวลผลและปรับแต่งด้วย AI Super v5 Auto-Optimizer (9-Layer Hybrid Ensemble)`;
 
     navigator.clipboard.writeText(textToCopy).then(() => {
       setCopySuccess(true);
@@ -332,7 +334,9 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
                 { key: 'wMrk', label: 'Markov (ความเชื่อมโยงงวด)', val: customWeights.wMrk },
                 { key: 'wPos', label: 'Positional (หลักสิบ/หลักหน่วย)', val: customWeights.wPos },
                 { key: 'wAr', label: 'Arithmetic (ผลรวมผลต่าง)', val: customWeights.wAr },
-                { key: 'wMod', label: 'Modulo (รอบห่างเศษสลาก)', val: customWeights.wMod }
+                { key: 'wMod', label: 'Modulo (รอบห่างเศษสลาก)', val: customWeights.wMod },
+                { key: 'wBay', label: 'Bayesian (ความน่าจะเป็นเบย์เซียน)', val: customWeights.wBay || 0 },
+                { key: 'wFib', label: 'Fibonacci (รอบความถี่ฟีโบนัชชี)', val: customWeights.wFib || 0 }
               ].map(slider => (
                 <div key={slider.key} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{ flex: 2, fontSize: '12px', color: 'var(--text-muted)' }}>{slider.label}</div>
@@ -346,7 +350,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
                     style={{ flex: 3, accentColor: '#A855F7', height: '4px', background: 'rgba(255,255,255,0.1)' }}
                   />
                   <div style={{ flex: 1, fontSize: '13px', fontWeight: 'bold', textAlign: 'right', color: '#A855F7' }}>
-                    {Math.round(slider.val * 100)}%
+                    {Math.round((slider.val || 0) * 100)}%
                   </div>
                 </div>
               ))}
@@ -358,7 +362,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
         <div className="glass-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <h2 style={{ fontSize: '20px', margin: 0 }}>
-              📊 กราฟวิเคราะห์พลังความน่าจะเป็น AI Super v4 (0 - 9)
+              📊 กราฟวิเคราะห์พลังความน่าจะเป็น AI Super v5 (0 - 9)
             </h2>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.03)', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
               ประมวลผลสดใหม่ 100%
