@@ -218,6 +218,79 @@ export default function Home() {
         }
       };
       fetchLiveThaiLotto();
+
+      // Fetch live Lao and Hanoi lottery results and merge them
+      const fetchLiveLaoHanoiLotto = async () => {
+        try {
+          const res = await fetch('/api/lotto/sync');
+          const json = await res.json();
+          if (json.success && json.data) {
+            const { lao: scrapedLao, hanoi: scrapedHanoi } = json.data;
+            
+            setDatabases(prev => {
+              // Helper to parse Thai date string for sorting
+              const parseThaiDateLocal = (dateStr) => {
+                if (!dateStr) return new Date(0);
+                const parts = dateStr.trim().split(/\s+/);
+                if (parts.length !== 3) return new Date(0);
+                const day = parseInt(parts[0], 10);
+                const monthThai = parts[1];
+                const yearThai = parseInt(parts[2], 10);
+                const monthsThai = [
+                  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+                  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+                ];
+                const monthIdx = monthsThai.indexOf(monthThai);
+                if (monthIdx === -1) return new Date(0);
+                return new Date(yearThai - 543, monthIdx, day);
+              };
+
+              // Merge scraped Lao data
+              const laoDb = [...prev.lao];
+              scrapedLao.forEach(scrapedItem => {
+                const existingIdx = laoDb.findIndex(d => d.date === scrapedItem.date);
+                if (existingIdx !== -1) {
+                  // Merge sub-draw properties: star, development, samakkee
+                  const merged = { ...laoDb[existingIdx] };
+                  if (scrapedItem.star) merged.star = scrapedItem.star;
+                  if (scrapedItem.development) merged.development = scrapedItem.development;
+                  if (scrapedItem.samakkee) merged.samakkee = scrapedItem.samakkee;
+                  laoDb[existingIdx] = merged;
+                } else {
+                  laoDb.unshift(scrapedItem);
+                }
+              });
+              laoDb.sort((a, b) => parseThaiDateLocal(b.date) - parseThaiDateLocal(a.date));
+
+              // Merge scraped Hanoi data
+              const hanoiDb = [...prev.hanoi];
+              scrapedHanoi.forEach(scrapedItem => {
+                const existingIdx = hanoiDb.findIndex(d => d.date === scrapedItem.date);
+                if (existingIdx !== -1) {
+                  const merged = { ...hanoiDb[existingIdx] };
+                  if (scrapedItem.special) merged.special = scrapedItem.special;
+                  if (scrapedItem.normal) merged.normal = scrapedItem.normal;
+                  if (scrapedItem.vip) merged.vip = scrapedItem.vip;
+                  hanoiDb[existingIdx] = merged;
+                } else {
+                  hanoiDb.unshift(scrapedItem);
+                }
+              });
+              hanoiDb.sort((a, b) => parseThaiDateLocal(b.date) - parseThaiDateLocal(a.date));
+
+              return {
+                ...prev,
+                lao: laoDb,
+                hanoi: hanoiDb
+              };
+            });
+          }
+        } catch (err) {
+          console.error("Live Lao/Hanoi sync failed:", err);
+        }
+      };
+      fetchLiveLaoHanoiLotto();
+
     } catch (e) {
       console.error("Live sync failed", e);
     }
