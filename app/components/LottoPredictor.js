@@ -14,15 +14,17 @@ import {
 export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
   const [tuningMode, setTuningMode] = useState('auto'); // 'auto', 'balanced', 'recency', 'markov', 'custom'
   const [customWeights, setCustomWeights] = useState({
-    wRec: 0.20,
-    wCo: 0.15,
+    wRec: 0.18,
+    wCo: 0.12,
     wOvd: 0.05,
-    wMrk: 0.15,
-    wPos: 0.10,
-    wAr: 0.10,
-    wMod: 0.10,
+    wMrk: 0.12,
+    wMrk2: 0.08,
+    wPos: 0.08,
+    wAr: 0.07,
+    wMod: 0.08,
     wBay: 0.10,
-    wFib: 0.05
+    wFib: 0.05,
+    wMom: 0.07
   });
 
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -35,7 +37,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
   }, [lottoData, tuningMode, customWeights, optTrigger]);
 
   const activeWeights = predictions.activeWeights || {
-    wRec: 0.20, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.10, wMod: 0.10, wBay: 0.10, wFib: 0.05
+    wRec: 0.18, wCo: 0.12, wOvd: 0.05, wMrk: 0.12, wMrk2: 0.08, wPos: 0.08, wAr: 0.07, wMod: 0.08, wBay: 0.10, wFib: 0.05, wMom: 0.07
   };
 
   const oddEven = React.useMemo(() => getOddEvenRatio(lottoData), [lottoData]);
@@ -97,7 +99,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
 • เจาะ 2 ตัว: ${recommendedTwoDigits.join(', ')}
 • ชุด 3 ตัว: ${recommendedThreeDigits.join(', ')}
 ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1]}${topDigits[2]}${predictions[3]?.digit || '9'}` : ''}
-⚡ ประมวลผลและปรับแต่งด้วย AI Super v5 Auto-Optimizer (9-Layer Hybrid Ensemble)`;
+⚡ ประมวลผลและปรับแต่งด้วย AI Super v6 Genetic Optimizer (11-Layer Ensemble)`;
 
     navigator.clipboard.writeText(textToCopy).then(() => {
       setCopySuccess(true);
@@ -227,7 +229,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
         {/* AI AUTO-TUNING & WEIGHTS DASHBOARD */}
         <div className="glass-card" style={{ borderLeft: `5px solid #A855F7` }}>
           <h2 style={{ fontSize: '18px', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#A855F7' }}>⚙️</span> แผงปรับจูนค่าน้ำหนักโมเดล AI Super v5
+            <span style={{ color: '#A855F7' }}>⚙️</span> แผงปรับจูนค่าน้ำหนักโมเดล AI Super v6
           </h2>
 
           {/* Mode Selector */}
@@ -328,12 +330,14 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
                 { key: 'wRec', label: 'Recency (สถิติงวดล่าสุด)', val: customWeights.wRec },
                 { key: 'wCo', label: 'Co-Occurrence (เลขคู่เด่น)', val: customWeights.wCo },
                 { key: 'wOvd', label: 'Overdue (เลขค้างนานสุด)', val: customWeights.wOvd },
-                { key: 'wMrk', label: 'Markov (ความเชื่อมโยงงวด)', val: customWeights.wMrk },
+                { key: 'wMrk', label: 'Markov 1st (ความเชื่อมโยงเดี่ยว)', val: customWeights.wMrk },
+                { key: 'wMrk2', label: 'Markov 2nd (ความเชื่อมโยงคู่)', val: customWeights.wMrk2 || 0 },
                 { key: 'wPos', label: 'Positional (หลักสิบ/หลักหน่วย)', val: customWeights.wPos },
                 { key: 'wAr', label: 'Arithmetic (ผลรวมผลต่าง)', val: customWeights.wAr },
                 { key: 'wMod', label: 'Modulo (รอบห่างเศษสลาก)', val: customWeights.wMod },
                 { key: 'wBay', label: 'Bayesian (ความน่าจะเป็นเบย์เซียน)', val: customWeights.wBay || 0 },
-                { key: 'wFib', label: 'Fibonacci (รอบความถี่ฟีโบนัชชี)', val: customWeights.wFib || 0 }
+                { key: 'wFib', label: 'Fibonacci (รอบความถี่ฟีโบนัชชี)', val: customWeights.wFib || 0 },
+                { key: 'wMom', label: 'Momentum MACD (แนวโน้มโมเมนตัม)', val: customWeights.wMom || 0 }
               ].map(slider => (
                 <div key={slider.key} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{ flex: 2, fontSize: '12px', color: 'var(--text-muted)' }}>{slider.label}</div>
@@ -359,7 +363,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
         <div className="glass-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <h2 style={{ fontSize: '20px', margin: 0 }}>
-              📊 กราฟวิเคราะห์พลังความน่าจะเป็น AI Super v5 (0 - 9)
+              📊 กราฟวิเคราะห์พลังความน่าจะเป็น AI Super v6 (0 - 9)
             </h2>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.03)', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
               ประมวลผลสดใหม่ 100%
@@ -403,7 +407,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
         {/* Global Accuracy Gauge */}
         <div className="glass-card" style={{ textAlign: 'center' }}>
           <h3 style={{ fontSize: '16px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-            🏆 อัตราแม่นยำย้อนหลังของ AI Super v5
+            🏆 อัตราแม่นยำย้อนหลังของ AI Super v6
           </h3>
           <div style={{ fontSize: '48px', fontWeight: 'bold', color: theme.primary, textShadow: `0 0 20px ${theme.primary}` }}>
             {globalAccuracy}%

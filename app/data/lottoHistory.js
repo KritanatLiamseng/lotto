@@ -718,7 +718,7 @@ export function getDigitStats(history = []) {
 
 // Calculator 2: Dynamic Probability Model using Upgraded Multi-Agent AI Hybrid Ensemble Model v2
 export function getPredictionStats(history = [], tuningMode = 'auto', customWeights = null) {
-  const defaultWeights = { wRec: 0.20, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.10, wAr: 0.10, wMod: 0.10, wBay: 0.10, wFib: 0.05 };
+  const defaultWeights = { wRec: 0.18, wCo: 0.12, wOvd: 0.05, wMrk: 0.12, wMrk2: 0.08, wPos: 0.08, wAr: 0.07, wMod: 0.08, wBay: 0.10, wFib: 0.05, wMom: 0.07 };
   
   if (history.length === 0) {
     const fallback = [];
@@ -737,7 +737,285 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     return fallback;
   }
 
-  // --- ARRANGE AI TUNING MODE WEIGHTS ---
+  // --- LAYER CALCULATOR HELPER ---
+  const calculate11Layers = (data) => {
+    // 1. Recency
+    const recencyCounts = Array(10).fill(0);
+    let totalWeights = 0;
+    const recencyLimit = Math.min(data.length, 10);
+    for (let i = 0; i < recencyLimit; i++) {
+      const draw = data[i];
+      const weight = Math.pow(0.35, i) * (i === 0 ? 3.0 : i === 1 ? 1.8 : 1.0);
+      const d1 = draw.twoDigitBack;
+      if (d1 && d1.length === 2) {
+        recencyCounts[parseInt(d1[0], 10)] += weight;
+        recencyCounts[parseInt(d1[1], 10)] += weight;
+        totalWeights += (weight * 2);
+      }
+      if (draw.threeDigitBack && draw.threeDigitBack.length === 3) {
+        const d3_0 = parseInt(draw.threeDigitBack[0], 10);
+        recencyCounts[d3_0] += (weight * 0.5);
+        totalWeights += (weight * 0.5);
+      }
+    }
+    const recencyScores = recencyCounts.map(count => count / (totalWeights || 1));
+
+    // 2. Co-Occurrence
+    const coOccur = Array(10).fill(0).map(() => Array(10).fill(0));
+    data.forEach(draw => {
+      const d = draw.twoDigitBack;
+      if (d && d.length === 2) {
+        const u = parseInt(d[0], 10);
+        const v = parseInt(d[1], 10);
+        coOccur[u][v]++;
+        coOccur[v][u]++;
+      }
+    });
+    const coOccurScores = Array(10).fill(0);
+    for (let u = 0; u < 10; u++) {
+      let partnerSum = 0;
+      for (let v = 0; v < 10; v++) {
+        partnerSum += coOccur[u][v];
+      }
+      coOccurScores[u] = partnerSum / (data.length || 1);
+    }
+    const sumCoOccur = coOccurScores.reduce((a, b) => a + b, 0);
+    const normalizedCoOccur = coOccurScores.map(val => val / (sumCoOccur || 1));
+
+    // 3. Overdue
+    const lastSeen = Array(10).fill(99);
+    for (let d = 0; d < 10; d++) {
+      for (let i = 0; i < data.length; i++) {
+        const d1 = data[i].twoDigitBack;
+        if (d1 && (parseInt(d1[0], 10) === d || parseInt(d1[1], 10) === d)) {
+          lastSeen[d] = i;
+          break;
+        }
+      }
+    }
+    const overdueScores = lastSeen.map(gap => Math.min(gap, 15) / 15);
+
+    // 4. Markov 1st-Order
+    const transitionMatrix = Array(10).fill(0).map(() => Array(10).fill(0));
+    for (let i = 0; i < data.length - 1; i++) {
+      const currentDraw = data[i].twoDigitBack;
+      const nextDraw = data[i + 1].twoDigitBack;
+      if (currentDraw && currentDraw.length === 2 && nextDraw && nextDraw.length === 2) {
+        const cur1 = parseInt(currentDraw[0], 10);
+        const cur2 = parseInt(currentDraw[1], 10);
+        const nxt1 = parseInt(nextDraw[0], 10);
+        const nxt2 = parseInt(nextDraw[1], 10);
+        transitionMatrix[nxt1][cur1]++;
+        transitionMatrix[nxt1][cur2]++;
+        transitionMatrix[nxt2][cur1]++;
+        transitionMatrix[nxt2][cur2]++;
+      }
+    }
+    const markovScores = Array(10).fill(0);
+    const latestDraw = data[0].twoDigitBack;
+    if (latestDraw && latestDraw.length === 2) {
+      const lat1 = parseInt(latestDraw[0], 10);
+      const lat2 = parseInt(latestDraw[1], 10);
+      for (let d = 0; d < 10; d++) {
+        markovScores[d] = (transitionMatrix[lat1][d] + transitionMatrix[lat2][d]) / 2;
+      }
+    }
+    const sumMarkov = markovScores.reduce((a, b) => a + b, 0);
+    const normalizedMarkov = markovScores.map(val => val / (sumMarkov || 1));
+
+    // 5. Markov 2nd-Order
+    const transitionMatrix2 = {};
+    for (let i = 0; i < data.length - 2; i++) {
+      const current = data[i].twoDigitBack;
+      const prev = data[i + 1].twoDigitBack;
+      const prev2 = data[i + 2].twoDigitBack;
+      if (current && current.length === 2 && prev && prev.length === 2 && prev2 && prev2.length === 2) {
+        const c1 = parseInt(current[0], 10);
+        const c2 = parseInt(current[1], 10);
+        const p1 = parseInt(prev[0], 10);
+        const p2 = parseInt(prev[1], 10);
+        const p2_1 = parseInt(prev2[0], 10);
+        const p2_2 = parseInt(prev2[1], 10);
+
+        const states = [`${p2_1}_${p1}`, `${p2_1}_${p2}`, `${p2_2}_${p1}`, `${p2_2}_${p2}`];
+        states.forEach(state => {
+          if (!transitionMatrix2[state]) transitionMatrix2[state] = Array(10).fill(0);
+          transitionMatrix2[state][c1]++;
+          transitionMatrix2[state][c2]++;
+        });
+      }
+    }
+    const markov2Scores = Array(10).fill(0);
+    if (data.length >= 2 && latestDraw && latestDraw.length === 2) {
+      const prevDraw = data[1].twoDigitBack;
+      if (prevDraw && prevDraw.length === 2) {
+        const lat1 = parseInt(latestDraw[0], 10);
+        const lat2 = parseInt(latestDraw[1], 10);
+        const p1 = parseInt(prevDraw[0], 10);
+        const p2 = parseInt(prevDraw[1], 10);
+
+        const activeStates = [`${lat1}_${p1}`, `${lat1}_${p2}`, `${lat2}_${p1}`, `${lat2}_${p2}`];
+        activeStates.forEach(state => {
+          if (transitionMatrix2[state]) {
+            for (let d = 0; d < 10; d++) {
+              markov2Scores[d] += transitionMatrix2[state][d];
+            }
+          }
+        });
+      }
+    }
+    const sumMarkov2 = markov2Scores.reduce((a, b) => a + b, 0);
+    const normalizedMarkov2 = markov2Scores.map(val => val / (sumMarkov2 || 1));
+
+    // 6. Positional
+    const tensCounts = Array(10).fill(0);
+    const onesCounts = Array(10).fill(0);
+    const posLimit = Math.min(data.length, 15);
+    for (let i = 0; i < posLimit; i++) {
+      const d = data[i].twoDigitBack;
+      if (d && d.length === 2) {
+        const w = Math.pow(0.90, i);
+        tensCounts[parseInt(d[0], 10)] += w;
+        onesCounts[parseInt(d[1], 10)] += w;
+      }
+    }
+    const positionalScores = Array(10).fill(0);
+    for (let d = 0; d < 10; d++) {
+      positionalScores[d] = (tensCounts[d] + onesCounts[d]) / 2;
+    }
+    const sumPos = positionalScores.reduce((a, b) => a + b, 0);
+    const normalizedPositional = positionalScores.map(val => val / (sumPos || 1));
+
+    // 7. Arithmetic
+    const sumCounts = Array(19).fill(0);
+    let sumWeights = 0;
+    for (let i = 0; i < posLimit; i++) {
+      const d = data[i].twoDigitBack;
+      if (d && d.length === 2) {
+        const w = Math.pow(0.90, i);
+        const digitSum = parseInt(d[0], 10) + parseInt(d[1], 10);
+        sumCounts[digitSum] += w;
+        sumWeights += w;
+      }
+    }
+    const sumProbabilities = sumCounts.map(count => count / (sumWeights || 1));
+    const arithmeticScores = Array(10).fill(0);
+    for (let d = 0; d < 10; d++) {
+      let scoreSum = 0;
+      for (let other = 0; other < 10; other++) {
+        scoreSum += sumProbabilities[d + other];
+      }
+      arithmeticScores[d] = scoreSum / 10;
+    }
+    const sumArith = arithmeticScores.reduce((a, b) => a + b, 0);
+    const normalizedArithmetic = arithmeticScores.map(val => val / (sumArith || 1));
+
+    // 8. Modulo
+    const moduloCounts = Array(10).fill(0);
+    for (let i = 0; i < posLimit; i++) {
+      const d = data[i].twoDigitBack;
+      if (d && d.length === 2) {
+        const w = Math.pow(0.88, i);
+        const diff = Math.abs(parseInt(d[0], 10) - parseInt(d[1], 10));
+        const mod = diff % 5;
+        for (let digit = 0; digit < 10; digit++) {
+          if (digit % 5 === mod) {
+            moduloCounts[digit] += w;
+          }
+        }
+      }
+    }
+    const sumMod = moduloCounts.reduce((a, b) => a + b, 0);
+    const normalizedModulo = moduloCounts.map(val => val / (sumMod || 1));
+
+    // 9. Bayesian
+    const getOEState = (dStr) => {
+      if (!dStr || dStr.length !== 2) return 0;
+      return (parseInt(dStr[0], 10) % 2) * 2 + (parseInt(dStr[1], 10) % 2);
+    };
+    const stateCounts = Array(4).fill(0);
+    const digitStateFrequencies = Array(10).fill(0).map(() => Array(4).fill(0));
+    for (let i = 0; i < data.length - 1; i++) {
+      const currentOE = getOEState(data[i].twoDigitBack);
+      const prevOE = getOEState(data[i + 1].twoDigitBack);
+      stateCounts[prevOE]++;
+      const cur = data[i].twoDigitBack;
+      if (cur && cur.length === 2) {
+        digitStateFrequencies[parseInt(cur[0], 10)][prevOE]++;
+        digitStateFrequencies[parseInt(cur[1], 10)][prevOE]++;
+      }
+    }
+    const latestOE = getOEState(data[0].twoDigitBack);
+    const bayesianScores = Array(10).fill(0);
+    for (let d = 0; d < 10; d++) {
+      const stateCount = stateCounts[latestOE];
+      bayesianScores[d] = stateCount > 0 ? (digitStateFrequencies[d][latestOE] / stateCount) : 0.1;
+    }
+    const sumBayes = bayesianScores.reduce((a, b) => a + b, 0);
+    const normalizedBayes = bayesianScores.map(val => val / (sumBayes || 1));
+
+    // 10. Fibonacci
+    const fibonacciNumbers = [1, 2, 3, 5, 8, 13, 21, 34];
+    const fibonacciScores = Array(10).fill(0);
+    for (let d = 0; d < 10; d++) {
+      const gap = lastSeen[d];
+      if (fibonacciNumbers.includes(gap)) {
+        if (gap === 5 || gap === 8 || gap === 13) fibonacciScores[d] = 1.0;
+        else if (gap === 3 || gap === 21) fibonacciScores[d] = 0.7;
+        else fibonacciScores[d] = 0.4;
+      } else {
+        fibonacciScores[d] = 0.05;
+      }
+    }
+    const sumFib = fibonacciScores.reduce((a, b) => a + b, 0);
+    const normalizedFibonacci = fibonacciScores.map(val => val / (sumFib || 1));
+
+    // 11. Momentum Index
+    const momentumScores = Array(10).fill(0);
+    const shortLimit = Math.min(data.length, 5);
+    const longLimit = Math.min(data.length, 20);
+    const shortCounts = Array(10).fill(0);
+    for (let i = 0; i < shortLimit; i++) {
+      const d = data[i].twoDigitBack;
+      if (d && d.length === 2) {
+        shortCounts[parseInt(d[0], 10)]++;
+        shortCounts[parseInt(d[1], 10)]++;
+      }
+    }
+    const longCounts = Array(10).fill(0);
+    for (let i = 0; i < longLimit; i++) {
+      const d = data[i].twoDigitBack;
+      if (d && d.length === 2) {
+        longCounts[parseInt(d[0], 10)]++;
+        longCounts[parseInt(d[1], 10)]++;
+      }
+    }
+    for (let d = 0; d < 10; d++) {
+      const shortTerm = shortCounts[d] / (shortLimit * 2 || 1);
+      const longTerm = longCounts[d] / (longLimit * 2 || 1);
+      momentumScores[d] = shortTerm - longTerm;
+    }
+    const minMom = Math.min(...momentumScores);
+    const positiveMom = momentumScores.map(val => val - minMom + 0.01);
+    const sumMom = positiveMom.reduce((a, b) => a + b, 0);
+    const normalizedMomentum = positiveMom.map(val => val / (sumMom || 1));
+
+    return {
+      rec: recencyScores,
+      co: normalizedCoOccur,
+      ovd: overdueScores,
+      mrk: normalizedMarkov,
+      mrk2: normalizedMarkov2,
+      pos: normalizedPositional,
+      arith: normalizedArithmetic,
+      mod: normalizedModulo,
+      bay: normalizedBayes,
+      fib: normalizedFibonacci,
+      mom: normalizedMomentum,
+      lastSeen
+    };
+  };
+
   let activeConfig = null;
 
   if (tuningMode === 'custom' && customWeights) {
@@ -745,471 +1023,133 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
   } else if (tuningMode === 'balanced') {
     activeConfig = defaultWeights;
   } else if (tuningMode === 'recency') {
-    activeConfig = { wRec: 0.45, wCo: 0.10, wOvd: 0.05, wMrk: 0.10, wPos: 0.05, wAr: 0.05, wMod: 0.05, wBay: 0.10, wFib: 0.05 };
+    activeConfig = { wRec: 0.40, wCo: 0.08, wOvd: 0.05, wMrk: 0.08, wMrk2: 0.05, wPos: 0.05, wAr: 0.05, wMod: 0.05, wBay: 0.08, wFib: 0.05, wMom: 0.08 };
   } else if (tuningMode === 'markov') {
-    activeConfig = { wRec: 0.10, wCo: 0.05, wOvd: 0.05, wMrk: 0.45, wPos: 0.05, wAr: 0.05, wMod: 0.05, wBay: 0.15, wFib: 0.05 };
+    activeConfig = { wRec: 0.08, wCo: 0.05, wOvd: 0.05, wMrk: 0.35, wMrk2: 0.20, wPos: 0.05, wAr: 0.05, wMod: 0.05, wBay: 0.09, wFib: 0.05, wMom: 0.03 };
   } else {
-    // AUTO OPTIMIZATION (Random Search over weight space with 150 candidates)
-    let bestConfig = defaultWeights;
-    let maxHits = -1;
-
-    const candidateConfigs = [
-      defaultWeights,
-      { wRec: 0.35, wCo: 0.15, wOvd: 0.05, wMrk: 0.15, wPos: 0.05, wAr: 0.05, wMod: 0.05, wBay: 0.10, wFib: 0.05 },
-      { wRec: 0.15, wCo: 0.10, wOvd: 0.05, wMrk: 0.35, wPos: 0.05, wAr: 0.05, wMod: 0.05, wBay: 0.15, wFib: 0.05 },
-      { wRec: 0.15, wCo: 0.35, wOvd: 0.05, wMrk: 0.10, wPos: 0.05, wAr: 0.05, wMod: 0.05, wBay: 0.15, wFib: 0.05 },
-      { wRec: 0.15, wCo: 0.10, wOvd: 0.05, wMrk: 0.10, wPos: 0.25, wAr: 0.05, wMod: 0.05, wBay: 0.20, wFib: 0.05 }
-    ];
-
-    for (let j = 0; j < 150; j++) {
-      const randWeights = Array(9).fill(0).map(() => Math.random());
-      randWeights[0] *= 2.0; // wRec
-      randWeights[1] *= 1.5; // wCo
-      randWeights[3] *= 1.5; // wMrk
-      randWeights[7] *= 1.5; // wBay
+    // --- PRECALCULATE BACKTEST CHUNKS TO SPEED UP GA ---
+    const backtestLimit = Math.min(history.length - 3, 10);
+    const backtestCaches = [];
+    
+    for (let b = 1; b <= backtestLimit; b++) {
+      const precedingData = history.slice(b + 1);
+      if (precedingData.length < 5) continue;
       
-      const sum = randWeights.reduce((a, b) => a + b, 0);
-      candidateConfigs.push({
-        wRec: randWeights[0] / sum,
-        wCo: randWeights[1] / sum,
-        wOvd: randWeights[2] / sum,
-        wMrk: randWeights[3] / sum,
-        wPos: randWeights[4] / sum,
-        wAr: randWeights[5] / sum,
-        wMod: randWeights[6] / sum,
-        wBay: randWeights[7] / sum,
-        wFib: randWeights[8] / sum
+      const layers = calculate11Layers(precedingData);
+      const actual = history[b].twoDigitBack;
+      const actualDigits = (actual && actual.length === 2) ? [parseInt(actual[0], 10), parseInt(actual[1], 10)] : [];
+      
+      backtestCaches.push({
+        layers,
+        actualDigits,
+        decay: Math.pow(0.88, b - 1)
       });
     }
 
-    candidateConfigs.forEach(config => {
-      let hits = 0;
-      const backtestLimit = Math.min(history.length - 2, 10);
-      for (let b = 1; b <= backtestLimit; b++) {
-        const precedingData = history.slice(b + 1);
-        if (precedingData.length < 5) continue;
-
-        // Recency
-        const bRecCounts = Array(10).fill(0);
-        let bTotalW = 0;
-        const bSize = Math.min(precedingData.length, 12);
-        for (let i = 0; i < bSize; i++) {
-          const draw = precedingData[i];
-          const w = Math.pow(0.85, i);
-          const d1 = draw.twoDigitBack;
-          if (d1 && d1.length === 2) {
-            bRecCounts[parseInt(d1[0], 10)] += w;
-            bRecCounts[parseInt(d1[1], 10)] += w;
-            bTotalW += (w * 2);
-          }
-        }
-        const bRecScores = bRecCounts.map(count => count / (bTotalW || 1));
-        
-        // Overdue
-        const bOvdGaps = Array(10).fill(99);
-        for (let d = 0; d < 10; d++) {
-          for (let i = 0; i < precedingData.length; i++) {
-            const d1 = precedingData[i].twoDigitBack;
-            if (d1 && (parseInt(d1[0], 10) === d || parseInt(d1[1], 10) === d)) {
-              bOvdGaps[d] = i;
-              break;
-            }
-          }
-        }
-        const bOvdScores = bOvdGaps.map(gap => Math.min(gap, 15) / 15);
-
-        // Co-occurrence
-        const bCoOccur = Array(10).fill(0).map(() => Array(10).fill(0));
-        precedingData.forEach(draw => {
-          const d = draw.twoDigitBack;
-          if (d && d.length === 2) {
-            const u = parseInt(d[0], 10);
-            const v = parseInt(d[1], 10);
-            bCoOccur[u][v]++;
-            bCoOccur[v][u]++;
-          }
-        });
-        const bCoScores = Array(10).fill(0);
-        for (let u = 0; u < 10; u++) {
-          let partnerSum = 0;
-          for (let v = 0; v < 10; v++) {
-            partnerSum += bCoOccur[u][v];
-          }
-          bCoScores[u] = partnerSum / (precedingData.length || 1);
-        }
-        const sumBCo = bCoScores.reduce((a, b) => a + b, 0);
-        const bCoOccurScores = bCoScores.map(val => val / (sumBCo || 1));
-
-        // Markov
-        const bTransitionMatrix = Array(10).fill(0).map(() => Array(10).fill(0));
-        for (let i = 0; i < precedingData.length - 1; i++) {
-          const currentDraw = precedingData[i].twoDigitBack;
-          const nextDraw = precedingData[i + 1].twoDigitBack;
-          if (currentDraw && currentDraw.length === 2 && nextDraw && nextDraw.length === 2) {
-            const cur1 = parseInt(currentDraw[0], 10);
-            const cur2 = parseInt(currentDraw[1], 10);
-            const nxt1 = parseInt(nextDraw[0], 10);
-            const nxt2 = parseInt(nextDraw[1], 10);
-            bTransitionMatrix[nxt1][cur1]++;
-            bTransitionMatrix[nxt1][cur2]++;
-            bTransitionMatrix[nxt2][cur1]++;
-            bTransitionMatrix[nxt2][cur2]++;
-          }
-        }
-        const bMarkScores = Array(10).fill(0);
-        const bLatestDraw = precedingData[0].twoDigitBack;
-        if (bLatestDraw && bLatestDraw.length === 2) {
-          const lat1 = parseInt(bLatestDraw[0], 10);
-          const lat2 = parseInt(bLatestDraw[1], 10);
-          for (let d = 0; d < 10; d++) {
-            bMarkScores[d] = (bTransitionMatrix[lat1][d] + bTransitionMatrix[lat2][d]) / 2;
-          }
-        }
-        const sumBMark = bMarkScores.reduce((a, b) => a + b, 0);
-        const bMarkovScores = bMarkScores.map(val => val / (sumBMark || 1));
-
-        // Positional
-        const bTensCounts = Array(10).fill(0);
-        const bOnesCounts = Array(10).fill(0);
-        const bPosLimit = Math.min(precedingData.length, 12);
-        for (let i = 0; i < bPosLimit; i++) {
-          const d = precedingData[i].twoDigitBack;
-          if (d && d.length === 2) {
-            const w = Math.pow(0.90, i);
-            bTensCounts[parseInt(d[0], 10)] += w;
-            bOnesCounts[parseInt(d[1], 10)] += w;
-          }
-        }
-        const bPosScores = Array(10).fill(0);
-        for (let d = 0; d < 10; d++) {
-          bPosScores[d] = (bTensCounts[d] + bOnesCounts[d]) / 2;
-        }
-        const sumBPos = bPosScores.reduce((a, b) => a + b, 0);
-        const bPositionalScores = bPosScores.map(val => val / (sumBPos || 1));
-
-        // Arithmetic
-        const bSumCounts = Array(19).fill(0);
-        let bSumWeights = 0;
-        for (let i = 0; i < bPosLimit; i++) {
-          const d = precedingData[i].twoDigitBack;
-          if (d && d.length === 2) {
-            const w = Math.pow(0.90, i);
-            const digitSum = parseInt(d[0], 10) + parseInt(d[1], 10);
-            bSumCounts[digitSum] += w;
-            bSumWeights += w;
-          }
-        }
-        const bSumProbabilities = bSumCounts.map(count => count / (bSumWeights || 1));
-        const bArithScores = Array(10).fill(0);
-        for (let d = 0; d < 10; d++) {
-          let scoreSum = 0;
-          for (let other = 0; other < 10; other++) {
-            scoreSum += bSumProbabilities[d + other];
-          }
-          bArithScores[d] = scoreSum / 10;
-        }
-        const sumBArith = bArithScores.reduce((a, b) => a + b, 0);
-        const bArithmeticScores = bArithScores.map(val => val / (sumBArith || 1));
-
-        // Modulo
-        const bModCounts = Array(10).fill(0);
-        for (let i = 0; i < bPosLimit; i++) {
-          const d = precedingData[i].twoDigitBack;
-          if (d && d.length === 2) {
-            const w = Math.pow(0.88, i);
-            const diff = Math.abs(parseInt(d[0], 10) - parseInt(d[1], 10));
-            const mod = diff % 5;
-            for (let digit = 0; digit < 10; digit++) {
-              if (digit % 5 === mod) {
-                bModCounts[digit] += w;
-              }
-            }
-          }
-        }
-        const sumBMod = bModCounts.reduce((a, b) => a + b, 0);
-        const bModuloScores = bModCounts.map(val => val / (sumBMod || 1));
-
-        // Bayesian Conditional Probability
-        const getOEStateLocal = (dStr) => {
-          if (!dStr || dStr.length !== 2) return 0;
-          return (parseInt(dStr[0], 10) % 2) * 2 + (parseInt(dStr[1], 10) % 2);
-        };
-        const bStateCounts = Array(4).fill(0);
-        const bDigitStateFreqs = Array(10).fill(0).map(() => Array(4).fill(0));
-        for (let i = 0; i < precedingData.length - 1; i++) {
-          const currentOE = getOEStateLocal(precedingData[i].twoDigitBack);
-          const prevOE = getOEStateLocal(precedingData[i + 1].twoDigitBack);
-          bStateCounts[prevOE]++;
-          const cur = precedingData[i].twoDigitBack;
-          if (cur && cur.length === 2) {
-            bDigitStateFreqs[parseInt(cur[0], 10)][prevOE]++;
-            bDigitStateFreqs[parseInt(cur[1], 10)][prevOE]++;
-          }
-        }
-        const bLatestOE = getOEStateLocal(precedingData[0].twoDigitBack);
-        const bBayScores = Array(10).fill(0);
-        for (let d = 0; d < 10; d++) {
-          const stateCount = bStateCounts[bLatestOE];
-          bBayScores[d] = stateCount > 0 ? (bDigitStateFreqs[d][bLatestOE] / stateCount) : 0.1;
-        }
-        const sumBBay = bBayScores.reduce((a, b) => a + b, 0);
-        const bBayesianScores = bBayScores.map(val => val / (sumBBay || 1));
-
-        // Fibonacci
-        const fibs = [1, 2, 3, 5, 8, 13, 21, 34];
-        const bFibScores = Array(10).fill(0);
-        for (let d = 0; d < 10; d++) {
-          const gap = bOvdGaps[d];
-          if (fibs.includes(gap)) {
-            if (gap === 5 || gap === 8 || gap === 13) bFibScores[d] = 1.0;
-            else if (gap === 3 || gap === 21) bFibScores[d] = 0.7;
-            else bFibScores[d] = 0.4;
-          } else {
-            bFibScores[d] = 0.05;
-          }
-        }
-        const sumBFib = bFibScores.reduce((a, b) => a + b, 0);
-        const bFibonacciScores = bFibScores.map(val => val / (sumBFib || 1));
-
-        // Combine
+    // Genetic Algorithm (GA) Weight Optimizer
+    const popSize = 40;
+    let population = [];
+    
+    // Generate initial population
+    for (let j = 0; j < popSize; j++) {
+      const chromosome = Array(11).fill(0).map(() => Math.random());
+      const sum = chromosome.reduce((a, b) => a + b, 0);
+      population.push(chromosome.map(val => val / sum));
+    }
+    
+    // Fast fitness evaluation utilizing precalculated cache
+    const evaluateFitness = (weights) => {
+      let fitness = 0;
+      backtestCaches.forEach(cache => {
         const combined = [];
         for (let d = 0; d < 10; d++) {
-          const val = 
-            (bRecScores[d] * config.wRec) + 
-            (bCoOccurScores[d] * config.wCo) + 
-            (bOvdScores[d] * config.wOvd) + 
-            (bMarkovScores[d] * config.wMrk) +
-            (bPositionalScores[d] * config.wPos) +
-            (bArithmeticScores[d] * config.wAr) +
-            (bModuloScores[d] * config.wMod) +
-            (bBayesianScores[d] * config.wBay) +
-            (bFibonacciScores[d] * config.wFib);
-          combined.push({ digit: d, score: val });
+          const score = 
+            (cache.layers.rec[d] * weights[0]) + 
+            (cache.layers.co[d] * weights[1]) + 
+            (cache.layers.ovd[d] * weights[2]) + 
+            (cache.layers.mrk[d] * weights[3]) +
+            (cache.layers.mrk2[d] * weights[4]) +
+            (cache.layers.pos[d] * weights[5]) +
+            (cache.layers.arith[d] * weights[6]) +
+            (cache.layers.mod[d] * weights[7]) +
+            (cache.layers.bay[d] * weights[8]) +
+            (cache.layers.fib[d] * weights[9]) +
+            (cache.layers.mom[d] * weights[10]);
+          combined.push({ digit: d, score });
         }
         combined.sort((x, y) => y.score - x.score);
-        const top3 = combined.slice(0, 3).map(x => x.digit);
-
-        const actual = history[b].twoDigitBack;
-        if (actual && actual.length === 2) {
-          const actD1 = parseInt(actual[0], 10);
-          const actD2 = parseInt(actual[1], 10);
-          if (top3.includes(actD1)) hits++;
-          if (top3.includes(actD2) && actD1 !== actD2) hits++;
+        const top3 = [combined[0].digit, combined[1].digit, combined[2].digit];
+        
+        let hits = 0;
+        cache.actualDigits.forEach(act => {
+          if (top3.includes(act)) hits++;
+        });
+        if (cache.actualDigits.length === 2 && cache.actualDigits[0] === cache.actualDigits[1] && top3.includes(cache.actualDigits[0])) {
+          hits--; // avoid counting double for twins
         }
-      }
 
-      if (hits > maxHits) {
-        maxHits = hits;
-        bestConfig = config;
-      }
-    });
+        fitness += (hits * cache.decay);
+      });
+      return fitness;
+    };
 
-    activeConfig = bestConfig;
-  }
-
-  // --- LAYER 1: DIRECT LATEST DRAW MOMENTUM BOOST ---
-  const recencyCounts = Array(10).fill(0);
-  let totalWeights = 0;
-  const recencyLimit = Math.min(history.length, 10);
-  for (let i = 0; i < recencyLimit; i++) {
-    const draw = history[i];
-    const weight = Math.pow(0.35, i) * (i === 0 ? 3.0 : i === 1 ? 1.8 : 1.0);
-    const d1 = draw.twoDigitBack;
-    if (d1 && d1.length === 2) {
-      recencyCounts[parseInt(d1[0], 10)] += weight;
-      recencyCounts[parseInt(d1[1], 10)] += weight;
-      totalWeights += (weight * 2);
-    }
-    if (draw.threeDigitBack && draw.threeDigitBack.length === 3) {
-      const d3_0 = parseInt(draw.threeDigitBack[0], 10);
-      recencyCounts[d3_0] += (weight * 0.5);
-      totalWeights += (weight * 0.5);
-    }
-  }
-  const recencyScores = recencyCounts.map(count => count / (totalWeights || 1));
-
-  // --- LAYER 2: DIGIT CO-OCCURRENCE CORRELATION ---
-  const coOccur = Array(10).fill(0).map(() => Array(10).fill(0));
-  history.forEach(draw => {
-    const d = draw.twoDigitBack;
-    if (d && d.length === 2) {
-      const u = parseInt(d[0], 10);
-      const v = parseInt(d[1], 10);
-      coOccur[u][v]++;
-      coOccur[v][u]++;
-    }
-  });
-  const coOccurScores = Array(10).fill(0);
-  for (let u = 0; u < 10; u++) {
-    let partnerSum = 0;
-    for (let v = 0; v < 10; v++) {
-      partnerSum += coOccur[u][v];
-    }
-    coOccurScores[u] = partnerSum / (history.length || 1);
-  }
-  const sumCoOccur = coOccurScores.reduce((a, b) => a + b, 0);
-  const normalizedCoOccur = coOccurScores.map(val => val / (sumCoOccur || 1));
-
-  // --- LAYER 3: REGRESSION-TO-THE-MEAN OVERDUE ABSENCE ---
-  const lastSeen = Array(10).fill(99);
-  for (let d = 0; d < 10; d++) {
-    for (let i = 0; i < history.length; i++) {
-      const d1 = history[i].twoDigitBack;
-      if (d1 && (parseInt(d1[0], 10) === d || parseInt(d1[1], 10) === d)) {
-        lastSeen[d] = i;
-        break;
-      }
-    }
-  }
-  const overdueScores = lastSeen.map(gap => Math.min(gap, 15) / 15);
-
-  // --- LAYER 4: MARKOV CHAIN STATE-TRANSITION PROBABILITY ---
-  const transitionMatrix = Array(10).fill(0).map(() => Array(10).fill(0));
-  for (let i = 0; i < history.length - 1; i++) {
-    const currentDraw = history[i].twoDigitBack;
-    const nextDraw = history[i + 1].twoDigitBack;
-    if (currentDraw && currentDraw.length === 2 && nextDraw && nextDraw.length === 2) {
-      const cur1 = parseInt(currentDraw[0], 10);
-      const cur2 = parseInt(currentDraw[1], 10);
-      const nxt1 = parseInt(nextDraw[0], 10);
-      const nxt2 = parseInt(nextDraw[1], 10);
+    // Run 4 generations of GA
+    for (let gen = 0; gen < 4; gen++) {
+      const rated = population.map(chrom => ({ chrom, fitness: evaluateFitness(chrom) }));
+      rated.sort((a, b) => b.fitness - a.fitness);
       
-      transitionMatrix[nxt1][cur1]++;
-      transitionMatrix[nxt1][cur2]++;
-      transitionMatrix[nxt2][cur1]++;
-      transitionMatrix[nxt2][cur2]++;
-    }
-  }
-  
-  const markovScores = Array(10).fill(0);
-  const latestDraw = history[0].twoDigitBack;
-  if (latestDraw && latestDraw.length === 2) {
-    const lat1 = parseInt(latestDraw[0], 10);
-    const lat2 = parseInt(latestDraw[1], 10);
-    for (let d = 0; d < 10; d++) {
-      const transProb = (transitionMatrix[lat1][d] + transitionMatrix[lat2][d]) / 2;
-      markovScores[d] = transProb;
-    }
-  }
-  const sumMarkov = markovScores.reduce((a, b) => a + b, 0);
-  const normalizedMarkov = markovScores.map(val => val / (sumMarkov || 1));
-
-  // --- LAYER 5: POSITIONAL AUTOCORRELATION (TENS vs ONES PLACE) ---
-  const tensCounts = Array(10).fill(0);
-  const onesCounts = Array(10).fill(0);
-  const posLimit = Math.min(history.length, 15);
-  for (let i = 0; i < posLimit; i++) {
-    const d = history[i].twoDigitBack;
-    if (d && d.length === 2) {
-      const w = Math.pow(0.90, i);
-      tensCounts[parseInt(d[0], 10)] += w;
-      onesCounts[parseInt(d[1], 10)] += w;
-    }
-  }
-  const positionalScores = Array(10).fill(0);
-  for (let d = 0; d < 10; d++) {
-    positionalScores[d] = (tensCounts[d] + onesCounts[d]) / 2;
-  }
-  const sumPos = positionalScores.reduce((a, b) => a + b, 0);
-  const normalizedPositional = positionalScores.map(val => val / (sumPos || 1));
-
-  // --- LAYER 6: ARITHMETIC DIGIT-SUM DISTRIBUTION ---
-  const sumCounts = Array(19).fill(0);
-  let sumWeights = 0;
-  for (let i = 0; i < posLimit; i++) {
-    const d = history[i].twoDigitBack;
-    if (d && d.length === 2) {
-      const w = Math.pow(0.90, i);
-      const digitSum = parseInt(d[0], 10) + parseInt(d[1], 10);
-      sumCounts[digitSum] += w;
-      sumWeights += w;
-    }
-  }
-  const sumProbabilities = sumCounts.map(count => count / (sumWeights || 1));
-  const arithmeticScores = Array(10).fill(0);
-  for (let d = 0; d < 10; d++) {
-    let scoreSum = 0;
-    for (let other = 0; other < 10; other++) {
-      scoreSum += sumProbabilities[d + other];
-    }
-    arithmeticScores[d] = scoreSum / 10;
-  }
-  const sumArith = arithmeticScores.reduce((a, b) => a + b, 0);
-  const normalizedArithmetic = arithmeticScores.map(val => val / (sumArith || 1));
-
-  // --- LAYER 7: DIGIT PAIR INTERVAL & MODULO CORRELATION ---
-  const moduloCounts = Array(10).fill(0);
-  for (let i = 0; i < posLimit; i++) {
-    const d = history[i].twoDigitBack;
-    if (d && d.length === 2) {
-      const w = Math.pow(0.88, i);
-      const diff = Math.abs(parseInt(d[0], 10) - parseInt(d[1], 10));
-      const mod = diff % 5;
-      for (let digit = 0; digit < 10; digit++) {
-        if (digit % 5 === mod) {
-          moduloCounts[digit] += w;
+      const elite = rated.slice(0, 10).map(x => x.chrom);
+      const nextPop = [...elite];
+      
+      while (nextPop.length < popSize) {
+        // Crossover
+        const parent1 = elite[Math.floor(Math.random() * elite.length)];
+        const parent2 = elite[Math.floor(Math.random() * elite.length)];
+        let child = parent1.map((w, idx) => Math.random() > 0.5 ? w : parent2[idx]);
+        
+        // Mutation
+        if (Math.random() < 0.15) {
+          const mutIdx = Math.floor(Math.random() * 11);
+          child[mutIdx] = Math.max(0, child[mutIdx] + (Math.random() * 0.1 - 0.05));
         }
+        
+        // Re-normalize
+        const sum = child.reduce((a, b) => a + b, 0);
+        child = child.map(val => val / (sum || 1));
+        nextPop.push(child);
       }
+      population = nextPop;
     }
+    
+    // Find best config
+    const finalRated = population.map(chrom => ({ chrom, fitness: evaluateFitness(chrom) }));
+    finalRated.sort((a, b) => b.fitness - a.fitness);
+    
+    const bestWeights = finalRated[0].chrom;
+    activeConfig = {
+      wRec: bestWeights[0], wCo: bestWeights[1], wOvd: bestWeights[2], wMrk: bestWeights[3], wMrk2: bestWeights[4],
+      wPos: bestWeights[5], wAr: bestWeights[6], wMod: bestWeights[7], wBay: bestWeights[8], wFib: bestWeights[9], wMom: bestWeights[10]
+    };
   }
-  const sumMod = moduloCounts.reduce((a, b) => a + b, 0);
-  const normalizedModulo = moduloCounts.map(val => val / (sumMod || 1));
 
-  // --- LAYER 8: BAYESIAN CONDITIONAL PROBABILITY ---
-  const getOEState = (dStr) => {
-    if (!dStr || dStr.length !== 2) return 0;
-    return (parseInt(dStr[0], 10) % 2) * 2 + (parseInt(dStr[1], 10) % 2);
-  };
-  const stateCounts = Array(4).fill(0);
-  const digitStateFrequencies = Array(10).fill(0).map(() => Array(4).fill(0));
-  for (let i = 0; i < history.length - 1; i++) {
-    const currentOE = getOEState(history[i].twoDigitBack);
-    const prevOE = getOEState(history[i + 1].twoDigitBack);
-    stateCounts[prevOE]++;
-    const cur = history[i].twoDigitBack;
-    if (cur && cur.length === 2) {
-      digitStateFrequencies[parseInt(cur[0], 10)][prevOE]++;
-      digitStateFrequencies[parseInt(cur[1], 10)][prevOE]++;
-    }
-  }
-  const latestOE = getOEState(history[0].twoDigitBack);
-  const bayesianScores = Array(10).fill(0);
-  for (let d = 0; d < 10; d++) {
-    const stateCount = stateCounts[latestOE];
-    bayesianScores[d] = stateCount > 0 ? (digitStateFrequencies[d][latestOE] / stateCount) : 0.1;
-  }
-  const sumBayes = bayesianScores.reduce((a, b) => a + b, 0);
-  const normalizedBayes = bayesianScores.map(val => val / (sumBayes || 1));
-
-  // --- LAYER 9: FIBONACCI RESONANCE CYCLE BOOST ---
-  const fibonacciNumbers = [1, 2, 3, 5, 8, 13, 21, 34];
-  const fibonacciScores = Array(10).fill(0);
-  for (let d = 0; d < 10; d++) {
-    const gap = lastSeen[d];
-    if (fibonacciNumbers.includes(gap)) {
-      if (gap === 5 || gap === 8 || gap === 13) fibonacciScores[d] = 1.0;
-      else if (gap === 3 || gap === 21) fibonacciScores[d] = 0.7;
-      else fibonacciScores[d] = 0.4;
-    } else {
-      fibonacciScores[d] = 0.05;
-    }
-  }
-  const sumFib = fibonacciScores.reduce((a, b) => a + b, 0);
-  const normalizedFibonacci = fibonacciScores.map(val => val / (sumFib || 1));
+  // Calculate final layers for full dataset
+  const layers = calculate11Layers(history);
 
   // Combine scores with active weights
   const optimizedScores = [];
   for (let d = 0; d < 10; d++) {
     optimizedScores.push(
-      (recencyScores[d] * activeConfig.wRec) + 
-      (normalizedCoOccur[d] * activeConfig.wCo) + 
-      (overdueScores[d] * activeConfig.wOvd) + 
-      (normalizedMarkov[d] * activeConfig.wMrk) +
-      (normalizedPositional[d] * activeConfig.wPos) +
-      (normalizedArithmetic[d] * activeConfig.wAr) +
-      (normalizedModulo[d] * activeConfig.wMod) +
-      (normalizedBayes[d] * activeConfig.wBay) +
-      (normalizedFibonacci[d] * activeConfig.wFib)
+      (layers.rec[d] * activeConfig.wRec) + 
+      (layers.co[d] * activeConfig.wCo) + 
+      (layers.ovd[d] * activeConfig.wOvd) + 
+      (layers.mrk[d] * activeConfig.wMrk) +
+      (layers.mrk2[d] * activeConfig.wMrk2) +
+      (layers.pos[d] * activeConfig.wPos) +
+      (layers.arith[d] * activeConfig.wAr) +
+      (layers.mod[d] * activeConfig.wMod) +
+      (layers.bay[d] * activeConfig.wBay) +
+      (layers.fib[d] * activeConfig.wFib) +
+      (layers.mom[d] * activeConfig.wMom)
     );
   }
 
@@ -1222,7 +1162,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       digit: d,
       score: rawScore,
       probability: Math.round((rawScore / (totalScoreSum || 1)) * 100),
-      lastSeen: lastSeen[d]
+      lastSeen: layers.lastSeen[d]
     });
   }
 
