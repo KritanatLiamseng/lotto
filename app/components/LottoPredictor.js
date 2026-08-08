@@ -83,15 +83,12 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
   const topDigits = predictions.slice(0, 5).map(p => p.digit);
   const recommendedTwoDigits = [
     `${topDigits[0]}${topDigits[1]}`,
-    `${topDigits[0]}${topDigits[2]}`,
-    `${topDigits[1]}${topDigits[2]}`,
-    `${topDigits[0]}${topDigits[3]}`
+    `${topDigits[0]}${topDigits[2]}`
   ];
   
   const recommendedThreeDigits = [
     `${topDigits[0]}${topDigits[1]}${topDigits[2]}`,
-    `${topDigits[3]}${topDigits[0]}${topDigits[1]}`,
-    `${topDigits[4]}${topDigits[0]}${topDigits[2]}`
+    `${topDigits[3]}${topDigits[0]}${topDigits[1]}`
   ];
 
   const handleCopyNumbers = () => {
