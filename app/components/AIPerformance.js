@@ -37,16 +37,13 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [], hist
 
       const pastData = effectiveData.slice(parentIdx + 1);
       const predictions = getPredictionStats(pastData);
-      const topDigits = predictions.slice(0, 3).map(p => p.digit);
+      const topDigits = predictions.slice(0, 5).map(p => p.digit);
 
       // Helper to generate 2-digit recommendations
-      const getTwoDigitRecs = (top, preds) => {
-        const nextDigit = preds[3]?.digit !== undefined ? preds[3].digit : '9';
+      const getTwoDigitRecs = (top) => {
         return [
           `${top[0]}${top[1]}`,
-          `${top[0]}${top[2]}`,
-          `${top[1]}${top[2]}`,
-          `${top[0]}${nextDigit}`
+          `${top[0]}${top[2]}`
         ];
       };
 
@@ -54,15 +51,14 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [], hist
       const getThreeDigitRecs = (top) => {
         return [
           `${top[0]}${top[1]}${top[2]}`,
-          `9${top[0]}${top[1]}`,
-          `5${top[0]}${top[2]}`
+          `${top[3]}${top[0]}${top[1]}`
         ];
       };
 
       if (digitMode === '2digit') {
         // --- 2 DIGIT BACKTEST ---
         if (lottoType === 'thai') {
-          const recs = getTwoDigitRecs(topDigits, predictions);
+          const recs = getTwoDigitRecs(topDigits);
           const actual = draw.twoDigitBack;
           if (!actual || actual.length !== 2) return;
           
@@ -126,8 +122,8 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [], hist
             if (subIdx < 0 || subIdx >= flatSubHistory.length - 1) return;
             const subPastData = flatSubHistory.slice(subIdx + 1);
             const subPredictions = getPredictionStats(subPastData);
-            const subTopDigits = subPredictions.slice(0, 3).map(p => p.digit);
-            const recs = getTwoDigitRecs(subTopDigits, subPredictions);
+            const subTopDigits = subPredictions.slice(0, 5).map(p => p.digit);
+            const recs = getTwoDigitRecs(subTopDigits);
 
             const actual = draw[sub.key].twoDigitBack;
             if (!actual || actual.length !== 2) return;
@@ -246,7 +242,7 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [], hist
             if (subIdx < 0 || subIdx >= flatSubHistory.length - 1) return;
             const subPastData = flatSubHistory.slice(subIdx + 1);
             const subPredictions = getPredictionStats(subPastData);
-            const subTopDigits = subPredictions.slice(0, 3).map(p => p.digit);
+            const subTopDigits = subPredictions.slice(0, 5).map(p => p.digit);
             const recs = getThreeDigitRecs(subTopDigits);
 
             const actual = draw[sub.key].threeDigitBack;

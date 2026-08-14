@@ -718,7 +718,11 @@ export function getDigitStats(history = []) {
 
 // Calculator 2: Dynamic Probability Model using Upgraded Multi-Agent AI Hybrid Ensemble Model v2
 export function getPredictionStats(history = [], tuningMode = 'auto', customWeights = null) {
-  const defaultWeights = { wRec: 0.18, wCo: 0.12, wOvd: 0.05, wMrk: 0.12, wMrk2: 0.08, wPos: 0.08, wAr: 0.07, wMod: 0.08, wBay: 0.10, wFib: 0.05, wMom: 0.07 };
+  const defaultWeights = { 
+    wRec: 0.12, wCo: 0.10, wOvd: 0.05, wMrk: 0.08, wMrk2: 0.06, 
+    wPos: 0.06, wAr: 0.05, wMod: 0.05, wBay: 0.08, wFib: 0.04, 
+    wMom: 0.06, wBen: 0.06, wEnt: 0.08, wFou: 0.08, wArm: 0.08 
+  };
   
   if (history.length === 0) {
     const fallback = [];
@@ -738,7 +742,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
   }
 
   // --- LAYER CALCULATOR HELPER ---
-  const calculate11Layers = (data) => {
+  const calculate15Layers = (data) => {
     // 1. Recency
     const recencyCounts = Array(10).fill(0);
     let totalWeights = 0;
@@ -805,19 +809,22 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
         const cur2 = parseInt(currentDraw[1], 10);
         const nxt1 = parseInt(nextDraw[0], 10);
         const nxt2 = parseInt(nextDraw[1], 10);
+        
         transitionMatrix[nxt1][cur1]++;
         transitionMatrix[nxt1][cur2]++;
         transitionMatrix[nxt2][cur1]++;
         transitionMatrix[nxt2][cur2]++;
       }
     }
+    
     const markovScores = Array(10).fill(0);
     const latestDraw = data[0].twoDigitBack;
     if (latestDraw && latestDraw.length === 2) {
       const lat1 = parseInt(latestDraw[0], 10);
       const lat2 = parseInt(latestDraw[1], 10);
       for (let d = 0; d < 10; d++) {
-        markovScores[d] = (transitionMatrix[lat1][d] + transitionMatrix[lat2][d]) / 2;
+        const transProb = (transitionMatrix[lat1][d] + transitionMatrix[lat2][d]) / 2;
+        markovScores[d] = transProb;
       }
     }
     const sumMarkov = markovScores.reduce((a, b) => a + b, 0);
@@ -1000,18 +1007,135 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumMom = positiveMom.reduce((a, b) => a + b, 0);
     const normalizedMomentum = positiveMom.map(val => val / (sumMom || 1));
 
+    // 12. Benford Skewness Deviation
+    const expectedFreq = 0.10;
+    const slidingLimit = Math.min(data.length, 25);
+    const digitCounts = Array(10).fill(0);
+    for (let i = 0; i < slidingLimit; i++) {
+      const d = data[i].twoDigitBack;
+      if (d && d.length === 2) {
+        digitCounts[parseInt(d[0], 10)]++;
+        digitCounts[parseInt(d[1], 10)]++;
+      }
+    }
+    const totalD = slidingLimit * 2;
+    const benfordScores = Array(10).fill(0);
+    for (let d = 0; d < 10; d++) {
+      const observed = digitCounts[d] / (totalD || 1);
+      benfordScores[d] = Math.max(0, expectedFreq - observed) + 0.01;
+    }
+    const sumBen = benfordScores.reduce((a, b) => a + b, 0);
+    const normalizedBenford = benfordScores.map(v => v / (sumBen || 1));
+
+    // 13. Shannon Entropy
+    const entropyScores = Array(10).fill(0);
+    const blocks = 4;
+    const blockSize = 6;
+    for (let d = 0; d < 10; d++) {
+      const blockCounts = Array(blocks).fill(0);
+      for (let b = 0; b < blocks; b++) {
+        for (let i = b * blockSize; i < (b + 1) * blockSize; i++) {
+          if (i >= data.length) break;
+          const draw = data[i];
+          const dStr = draw.twoDigitBack;
+          if (dStr && dStr.length === 2) {
+            if (parseInt(dStr[0], 10) === d) blockCounts[b]++;
+            if (parseInt(dStr[1], 10) === d) blockCounts[b]++;
+          }
+        }
+      }
+      const sumC = blockCounts.reduce((a, b) => a + b, 0);
+      if (sumC > 0) {
+        let ent = 0;
+        blockCounts.forEach(c => {
+          if (c > 0) {
+            const p = c / sumC;
+            ent -= p * Math.log2(p);
+          }
+        });
+        entropyScores[d] = ent;
+      } else {
+        entropyScores[d] = 0.05;
+      }
+    }
+    const sumEnt = entropyScores.reduce((a, b) => a + b, 0);
+    const normalizedEntropy = entropyScores.map(v => v / (sumEnt || 1));
+
+    // 14. Fourier Sinusoidal Spectral Density
+    const fourierScores = Array(10).fill(0);
+    const fN = Math.min(data.length, 30);
+    const fPeriods = [3, 5, 8, 12];
+    for (let d = 0; d < 10; d++) {
+      const x = Array(fN).fill(0);
+      for (let i = 0; i < fN; i++) {
+        const dStr = data[i].twoDigitBack;
+        if (dStr && dStr.length === 2) {
+          if (parseInt(dStr[0], 10) === d || parseInt(dStr[1], 10) === d) {
+            x[i] = 1;
+          }
+        }
+      }
+      let maxPsd = -1;
+      let dominantP = 5;
+      let dominantPhase = 0;
+      fPeriods.forEach(P => {
+        let real = 0, imag = 0;
+        for (let i = 0; i < fN; i++) {
+          const angle = (2 * Math.PI * i) / P;
+          real += x[i] * Math.cos(angle);
+          imag += x[i] * Math.sin(angle);
+        }
+        const psd = Math.sqrt(real * real + imag * imag);
+        if (psd > maxPsd) {
+          maxPsd = psd;
+          dominantP = P;
+          dominantPhase = Math.atan2(imag, real);
+        }
+      });
+      const projAngle = - (2 * Math.PI) / dominantP + dominantPhase;
+      fourierScores[d] = (Math.cos(projAngle) + 1.0) / 2.0 + 0.01;
+    }
+    const sumFou = fourierScores.reduce((a, b) => a + b, 0);
+    const normalizedFourier = fourierScores.map(v => v / (sumFou || 1));
+
+    // 15. AR(2) Forecast
+    const armScores = Array(10).fill(0);
+    const arN = Math.min(data.length, 25);
+    for (let d = 0; d < 10; d++) {
+      const x = Array(arN).fill(0);
+      for (let i = 0; i < arN; i++) {
+        const dStr = data[i].twoDigitBack;
+        if (dStr && dStr.length === 2) {
+          if (parseInt(dStr[0], 10) === d || parseInt(dStr[1], 10) === d) {
+            x[i] = 1;
+          }
+        }
+      }
+      let r0 = 0, r1 = 0, r2 = 0;
+      for (let t = 2; t < arN; t++) {
+        r0 += x[t] * x[t];
+        r1 += x[t] * x[t - 1];
+        r2 += x[t] * x[t - 2];
+      }
+      let phi1 = 0.3;
+      let phi2 = 0.15;
+      const denom = r0 * r0 - r1 * r1;
+      if (Math.abs(denom) > 0.0001) {
+        phi1 = (r1 * r0 - r1 * r2) / denom;
+        phi2 = (r2 * r0 - r1 * r1) / denom;
+      }
+      const predVal = phi1 * x[0] + phi2 * x[1];
+      armScores[d] = Math.max(0.01, predVal);
+    }
+    const sumArm = armScores.reduce((a, b) => a + b, 0);
+    const normalizedArm = armScores.map(v => v / (sumArm || 1));
+
     return {
-      rec: recencyScores,
-      co: normalizedCoOccur,
-      ovd: overdueScores,
-      mrk: normalizedMarkov,
-      mrk2: normalizedMarkov2,
-      pos: normalizedPositional,
-      arith: normalizedArithmetic,
-      mod: normalizedModulo,
-      bay: normalizedBayes,
-      fib: normalizedFibonacci,
-      mom: normalizedMomentum,
+      rec: recencyScores, co: normalizedCoOccur, ovd: overdueScores,
+      mrk: normalizedMarkov, mrk2: normalizedMarkov2, pos: normalizedPositional,
+      arith: normalizedArithmetic, mod: normalizedModulo, bay: normalizedBayes,
+      fib: normalizedFibonacci, mom: normalizedMomentum, ben: normalizedBenford,
+      ent: normalizedEntropy, fou: normalizedFourier, arm: normalizedArm,
       lastSeen
     };
   };
@@ -1023,11 +1147,19 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
   } else if (tuningMode === 'balanced') {
     activeConfig = defaultWeights;
   } else if (tuningMode === 'recency') {
-    activeConfig = { wRec: 0.40, wCo: 0.08, wOvd: 0.05, wMrk: 0.08, wMrk2: 0.05, wPos: 0.05, wAr: 0.05, wMod: 0.05, wBay: 0.08, wFib: 0.05, wMom: 0.08 };
+    activeConfig = { 
+      wRec: 0.30, wCo: 0.08, wOvd: 0.05, wMrk: 0.05, wMrk2: 0.04, 
+      wPos: 0.04, wAr: 0.04, wMod: 0.04, wBay: 0.05, wFib: 0.04, 
+      wMom: 0.06, wBen: 0.04, wEnt: 0.06, wFou: 0.06, wArm: 0.06 
+    };
   } else if (tuningMode === 'markov') {
-    activeConfig = { wRec: 0.08, wCo: 0.05, wOvd: 0.05, wMrk: 0.35, wMrk2: 0.20, wPos: 0.05, wAr: 0.05, wMod: 0.05, wBay: 0.09, wFib: 0.05, wMom: 0.03 };
+    activeConfig = { 
+      wRec: 0.05, wCo: 0.05, wOvd: 0.04, wMrk: 0.25, wMrk2: 0.15, 
+      wPos: 0.04, wAr: 0.04, wMod: 0.04, wBay: 0.15, wFib: 0.04, 
+      wMom: 0.03, wBen: 0.04, wEnt: 0.04, wFou: 0.04, wArm: 0.04 
+    };
   } else {
-    // --- PRECALCULATE BACKTEST CHUNKS TO SPEED UP GA ---
+    // --- PRECALCULATE BACKTEST CHUNKS ---
     const backtestLimit = Math.min(history.length - 3, 10);
     const backtestCaches = [];
     
@@ -1035,7 +1167,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       const precedingData = history.slice(b + 1);
       if (precedingData.length < 5) continue;
       
-      const layers = calculate11Layers(precedingData);
+      const layers = calculate15Layers(precedingData);
       const actual = history[b].twoDigitBack;
       const actualDigits = (actual && actual.length === 2) ? [parseInt(actual[0], 10), parseInt(actual[1], 10)] : [];
       
@@ -1046,18 +1178,19 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       });
     }
 
-    // Genetic Algorithm (GA) Weight Optimizer
-    const popSize = 40;
+    // Genetic Algorithm (GA) Weight Optimizer (8 Gen * 60 Pop)
+    const popSize = 60;
+    const generations = 8;
     let population = [];
     
     // Generate initial population
     for (let j = 0; j < popSize; j++) {
-      const chromosome = Array(11).fill(0).map(() => Math.random());
+      const chromosome = Array(15).fill(0).map(() => Math.random());
       const sum = chromosome.reduce((a, b) => a + b, 0);
       population.push(chromosome.map(val => val / sum));
     }
     
-    // Fast fitness evaluation utilizing precalculated cache
+    // Fast fitness evaluation
     const evaluateFitness = (weights) => {
       let fitness = 0;
       backtestCaches.forEach(cache => {
@@ -1074,7 +1207,11 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
             (cache.layers.mod[d] * weights[7]) +
             (cache.layers.bay[d] * weights[8]) +
             (cache.layers.fib[d] * weights[9]) +
-            (cache.layers.mom[d] * weights[10]);
+            (cache.layers.mom[d] * weights[10]) +
+            (cache.layers.ben[d] * weights[11]) +
+            (cache.layers.ent[d] * weights[12]) +
+            (cache.layers.fou[d] * weights[13]) +
+            (cache.layers.arm[d] * weights[14]);
           combined.push({ digit: d, score });
         }
         combined.sort((x, y) => y.score - x.score);
@@ -1085,35 +1222,31 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
           if (top3.includes(act)) hits++;
         });
         if (cache.actualDigits.length === 2 && cache.actualDigits[0] === cache.actualDigits[1] && top3.includes(cache.actualDigits[0])) {
-          hits--; // avoid counting double for twins
+          hits--;
         }
-
         fitness += (hits * cache.decay);
       });
       return fitness;
     };
 
-    // Run 4 generations of GA
-    for (let gen = 0; gen < 4; gen++) {
+    // Run generations
+    for (let gen = 0; gen < generations; gen++) {
       const rated = population.map(chrom => ({ chrom, fitness: evaluateFitness(chrom) }));
       rated.sort((a, b) => b.fitness - a.fitness);
       
-      const elite = rated.slice(0, 10).map(x => x.chrom);
+      const elite = rated.slice(0, 15).map(x => x.chrom);
       const nextPop = [...elite];
       
       while (nextPop.length < popSize) {
-        // Crossover
         const parent1 = elite[Math.floor(Math.random() * elite.length)];
         const parent2 = elite[Math.floor(Math.random() * elite.length)];
         let child = parent1.map((w, idx) => Math.random() > 0.5 ? w : parent2[idx]);
         
-        // Mutation
         if (Math.random() < 0.15) {
-          const mutIdx = Math.floor(Math.random() * 11);
+          const mutIdx = Math.floor(Math.random() * 15);
           child[mutIdx] = Math.max(0, child[mutIdx] + (Math.random() * 0.1 - 0.05));
         }
         
-        // Re-normalize
         const sum = child.reduce((a, b) => a + b, 0);
         child = child.map(val => val / (sum || 1));
         nextPop.push(child);
@@ -1128,14 +1261,12 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const bestWeights = finalRated[0].chrom;
     activeConfig = {
       wRec: bestWeights[0], wCo: bestWeights[1], wOvd: bestWeights[2], wMrk: bestWeights[3], wMrk2: bestWeights[4],
-      wPos: bestWeights[5], wAr: bestWeights[6], wMod: bestWeights[7], wBay: bestWeights[8], wFib: bestWeights[9], wMom: bestWeights[10]
+      wPos: bestWeights[5], wAr: bestWeights[6], wMod: bestWeights[7], wBay: bestWeights[8], wFib: bestWeights[9],
+      wMom: bestWeights[10], wBen: bestWeights[11], wEnt: bestWeights[12], wFou: bestWeights[13], wArm: bestWeights[14]
     };
   }
 
-  // Calculate final layers for full dataset
-  const layers = calculate11Layers(history);
-
-  // Combine scores with active weights
+  const layers = calculate15Layers(history);
   const optimizedScores = [];
   for (let d = 0; d < 10; d++) {
     optimizedScores.push(
@@ -1149,12 +1280,15 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       (layers.mod[d] * activeConfig.wMod) +
       (layers.bay[d] * activeConfig.wBay) +
       (layers.fib[d] * activeConfig.wFib) +
-      (layers.mom[d] * activeConfig.wMom)
+      (layers.mom[d] * activeConfig.wMom) +
+      (layers.ben[d] * activeConfig.wBen) +
+      (layers.ent[d] * activeConfig.wEnt) +
+      (layers.fou[d] * activeConfig.wFou) +
+      (layers.arm[d] * activeConfig.wArm)
     );
   }
 
   const totalScoreSum = optimizedScores.reduce((sum, score) => sum + score, 0);
-
   const predictionList = [];
   for (let d = 0; d < 10; d++) {
     const rawScore = optimizedScores[d];
@@ -1170,6 +1304,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
   sortedList.activeWeights = activeConfig;
   return sortedList;
 }
+
 
 // Calculator 3: Consecutive & Twin Number analysis
 export function getTwinConsecutiveStats(history = []) {

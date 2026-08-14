@@ -14,18 +14,11 @@ import {
 export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
   const [tuningMode, setTuningMode] = useState('auto'); // 'auto', 'balanced', 'recency', 'markov', 'custom'
   const [customWeights, setCustomWeights] = useState({
-    wRec: 0.18,
-    wCo: 0.12,
-    wOvd: 0.05,
-    wMrk: 0.12,
-    wMrk2: 0.08,
-    wPos: 0.08,
-    wAr: 0.07,
-    wMod: 0.08,
-    wBay: 0.10,
-    wFib: 0.05,
-    wMom: 0.07
+    wRec: 0.12, wCo: 0.10, wOvd: 0.05, wMrk: 0.08, wMrk2: 0.06, 
+    wPos: 0.06, wAr: 0.05, wMod: 0.05, wBay: 0.08, wFib: 0.04, 
+    wMom: 0.06, wBen: 0.06, wEnt: 0.08, wFou: 0.08, wArm: 0.08 
   });
+  const [activeCategory, setActiveCategory] = useState('gaps'); // 'gaps', 'markov', 'series', 'signal', 'math'
 
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optProgress, setOptProgress] = useState(0);
@@ -37,7 +30,9 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
   }, [lottoData, tuningMode, customWeights, optTrigger]);
 
   const activeWeights = predictions.activeWeights || {
-    wRec: 0.18, wCo: 0.12, wOvd: 0.05, wMrk: 0.12, wMrk2: 0.08, wPos: 0.08, wAr: 0.07, wMod: 0.08, wBay: 0.10, wFib: 0.05, wMom: 0.07
+    wRec: 0.12, wCo: 0.10, wOvd: 0.05, wMrk: 0.08, wMrk2: 0.06, 
+    wPos: 0.06, wAr: 0.05, wMod: 0.05, wBay: 0.08, wFib: 0.04, 
+    wMom: 0.06, wBen: 0.06, wEnt: 0.08, wFou: 0.08, wArm: 0.08
   };
 
   const oddEven = React.useMemo(() => getOddEvenRatio(lottoData), [lottoData]);
@@ -99,7 +94,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
 • เจาะ 2 ตัว: ${recommendedTwoDigits.join(', ')}
 • ชุด 3 ตัว: ${recommendedThreeDigits.join(', ')}
 ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1]}${topDigits[2]}${predictions[3]?.digit || '9'}` : ''}
-⚡ ประมวลผลและปรับแต่งด้วย AI Super v6 Genetic Optimizer (11-Layer Ensemble)`;
+⚡ ประมวลผลและปรับแต่งด้วย AI Super v10 Genetic Optimizer (15-Layer Ensemble)`;
 
     navigator.clipboard.writeText(textToCopy).then(() => {
       setCopySuccess(true);
@@ -301,21 +296,29 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
             <h4 style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 12px 0' }}>
               📊 ค่าน้ำหนักถ่วงสถิติที่ใช้งานอยู่ในปัจจุบัน (สัดส่วนรวม = 100%):
             </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '10px' }}>
               {[
-                { label: 'Recency (งวดล่าสุด)', value: activeWeights.wRec, color: '#FF5722' },
-                { label: 'Co-Occurrence (มาคู่กัน)', value: activeWeights.wCo, color: '#4CAF50' },
+                { label: 'Recency (ล่าสุด)', value: activeWeights.wRec, color: '#FF5722' },
+                { label: 'Co-Occurrence (คู่)', value: activeWeights.wCo, color: '#4CAF50' },
                 { label: 'Overdue (ไม่มานาน)', value: activeWeights.wOvd, color: '#FFEB3B' },
-                { label: 'Markov (เลขเชื่อมโยง)', value: activeWeights.wMrk, color: '#00BCD4' },
-                { label: 'Positional (เลขหลักสิบ/หน่วย)', value: activeWeights.wPos, color: '#9C27B0' },
-                { label: 'Arithmetic (ผลรวมหลักเลข)', value: activeWeights.wAr, color: '#E91E63' },
-                { label: 'Modulo (ช่วงห่างเศษส่วน)', value: activeWeights.wMod, color: '#3F51B5' }
+                { label: 'Markov 1st (ย้อน 1)', value: activeWeights.wMrk, color: '#00BCD4' },
+                { label: 'Markov 2nd (ย้อน 2)', value: activeWeights.wMrk2 || 0, color: '#009688' },
+                { label: 'Positional (ตำแหน่ง)', value: activeWeights.wPos, color: '#9C27B0' },
+                { label: 'Arithmetic (ผลรวม)', value: activeWeights.wAr, color: '#E91E63' },
+                { label: 'Modulo (เศษห่าง)', value: activeWeights.wMod, color: '#3F51B5' },
+                { label: 'Bayesian (เงื่อนไข)', value: activeWeights.wBay || 0, color: '#2196F3' },
+                { label: 'Fibonacci (ฟีโบ)', value: activeWeights.wFib || 0, color: '#FF9800' },
+                { label: 'Momentum (สั้น/ยาว)', value: activeWeights.wMom || 0, color: '#795548' },
+                { label: 'Benford (เฉลี่ย)', value: activeWeights.wBen || 0, color: '#607D8B' },
+                { label: 'Entropy (Shannon)', value: activeWeights.wEnt || 0, color: '#E040FB' },
+                { label: 'Fourier (คาบไซน์)', value: activeWeights.wFou || 0, color: '#E040FB' },
+                { label: 'AR(2) Autoreg', value: activeWeights.wArm || 0, color: '#00E676' }
               ].map((item, idx) => (
                 <div key={idx} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '8px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{item.label}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color }}></div>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#FFF' }}>{Math.round(item.value * 100)}%</span>
+                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#FFF' }}>{Math.round((item.value || 0) * 100)}%</span>
                   </div>
                 </div>
               ))}
@@ -325,32 +328,93 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
           {/* Custom Sliders for manual tuning */}
           {tuningMode === 'custom' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px', borderTop: '1px solid var(--border-card)', paddingTop: '16px' }}>
-              <h4 style={{ fontSize: '13px', color: '#FFF', margin: '0 0 4px 0' }}>🎛️ ปรับแต่งแถบสไลเดอร์ค่าน้ำหนักสถิติเอง:</h4>
+              <h4 style={{ fontSize: '13px', color: '#FFF', margin: '0 0 12px 0' }}>🎛️ ปรับแต่งแถบสไลเดอร์ค่าน้ำหนักสถิติแยกตามกลุ่มวิเคราะห์:</h4>
+              
+              {/* Category tabs */}
+              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '8px' }}>
+                {[
+                  { id: 'gaps', label: '⏳ รอบออก/ดึงดูด' },
+                  { id: 'markov', label: '🔗 ความน่าจะเป็นต่อเนื่อง' },
+                  { id: 'series', label: '📈 เทรนด์/อนุกรมเวลา' },
+                  { id: 'signal', label: '🌀 สัญญาณคลื่น/ความโกลาหล' },
+                  { id: 'math', label: '📐 มิติโครงสร้างเลข' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveCategory(tab.id)}
+                    style={{
+                      background: activeCategory === tab.id ? 'var(--gold)' : 'rgba(255,255,255,0.03)',
+                      color: activeCategory === tab.id ? '#000' : 'var(--text-muted)',
+                      border: activeCategory === tab.id ? '1px solid var(--gold)' : '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: '8px',
+                      padding: '6px 12px',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      fontWeight: 'bold',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Sliders for active category */}
               {[
-                { key: 'wRec', label: 'Recency (สถิติงวดล่าสุด)', val: customWeights.wRec },
-                { key: 'wCo', label: 'Co-Occurrence (เลขคู่เด่น)', val: customWeights.wCo },
-                { key: 'wOvd', label: 'Overdue (เลขค้างนานสุด)', val: customWeights.wOvd },
-                { key: 'wMrk', label: 'Markov 1st (ความเชื่อมโยงเดี่ยว)', val: customWeights.wMrk },
-                { key: 'wMrk2', label: 'Markov 2nd (ความเชื่อมโยงคู่)', val: customWeights.wMrk2 || 0 },
-                { key: 'wPos', label: 'Positional (หลักสิบ/หลักหน่วย)', val: customWeights.wPos },
-                { key: 'wAr', label: 'Arithmetic (ผลรวมผลต่าง)', val: customWeights.wAr },
-                { key: 'wMod', label: 'Modulo (รอบห่างเศษสลาก)', val: customWeights.wMod },
-                { key: 'wBay', label: 'Bayesian (ความน่าจะเป็นเบย์เซียน)', val: customWeights.wBay || 0 },
-                { key: 'wFib', label: 'Fibonacci (รอบความถี่ฟีโบนัชชี)', val: customWeights.wFib || 0 },
-                { key: 'wMom', label: 'Momentum MACD (แนวโน้มโมเมนตัม)', val: customWeights.wMom || 0 }
-              ].map(slider => (
+                { 
+                  cat: 'gaps',
+                  sliders: [
+                    { key: 'wRec', label: 'Recency (สถิติงวดล่าสุด)', val: customWeights.wRec },
+                    { key: 'wCo', label: 'Co-Occurrence (เลขคู่เด่นมาคู่กัน)', val: customWeights.wCo },
+                    { key: 'wOvd', label: 'Overdue (เลขค้างนานสุด)', val: customWeights.wOvd },
+                    { key: 'wFib', label: 'Fibonacci Resonance (ความถี่วัฏจักรฟีโบนัชชี)', val: customWeights.wFib || 0 }
+                  ]
+                },
+                {
+                  cat: 'markov',
+                  sliders: [
+                    { key: 'wMrk', label: 'Markov 1st (ความเชื่อมโยงย้อนหลัง 1 งวด)', val: customWeights.wMrk },
+                    { key: 'wMrk2', label: 'Markov 2nd (ความเชื่อมโยงย้อนหลัง 2 งวด)', val: customWeights.wMrk2 || 0 },
+                    { key: 'wBay', label: 'Bayesian Conditional (ความน่าจะเป็นตามเงื่อนไข)', val: customWeights.wBay || 0 }
+                  ]
+                },
+                {
+                  cat: 'series',
+                  sliders: [
+                    { key: 'wMom', label: 'Momentum MACD (แนวโน้มโมเมนตัมระยะสั้น-ยาว)', val: customWeights.wMom || 0 },
+                    { key: 'wArm', label: 'AR(2) Autoregressive (พยากรณ์อนุกรมเวลา)', val: customWeights.wArm || 0 }
+                  ]
+                },
+                {
+                  cat: 'signal',
+                  sliders: [
+                    { key: 'wEnt', label: 'Shannon Entropy (ความไม่เป็นระเบียบของการเว้นวรรค)', val: customWeights.wEnt || 0 },
+                    { key: 'wFou', label: 'Fourier Spectral Density (คลื่นความถี่ฟูริเยร์)', val: customWeights.wFou || 0 },
+                    { key: 'wBen', label: 'Benford Skewness (ความเบี่ยงเบนความถี่ตัวเลข)', val: customWeights.wBen || 0 }
+                  ]
+                },
+                {
+                  cat: 'math',
+                  sliders: [
+                    { key: 'wPos', label: 'Positional Tens/Ones (ความถี่ตำแหน่งหลักสิบ/หน่วย)', val: customWeights.wPos },
+                    { key: 'wAr', label: 'Arithmetic Digit-Sum (ความถี่ผลรวมผลต่าง)', val: customWeights.wAr },
+                    { key: 'wMod', label: 'Modulo Class Periodicity (คาบเศษเลข)', val: customWeights.wMod }
+                  ]
+                }
+              ].find(group => group.cat === activeCategory)?.sliders.map(slider => (
                 <div key={slider.key} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ flex: 2, fontSize: '12px', color: 'var(--text-muted)' }}>{slider.label}</div>
+                  <div style={{ flex: 2, fontSize: '11px', color: 'var(--text-muted)' }}>{slider.label}</div>
                   <input
                     type="range"
                     min="0"
                     max="1"
                     step="0.05"
-                    value={slider.val}
+                    value={slider.val || 0}
                     onChange={(e) => handleWeightChange(slider.key, e.target.value)}
-                    style={{ flex: 3, accentColor: '#A855F7', height: '4px', background: 'rgba(255,255,255,0.1)' }}
+                    style={{ flex: 3, accentColor: 'var(--gold)', height: '4px', background: 'rgba(255,255,255,0.1)' }}
                   />
-                  <div style={{ flex: 1, fontSize: '13px', fontWeight: 'bold', textAlign: 'right', color: '#A855F7' }}>
+                  <div style={{ flex: 1, fontSize: '12px', fontWeight: 'bold', textAlign: 'right', color: 'var(--gold)' }}>
                     {Math.round((slider.val || 0) * 100)}%
                   </div>
                 </div>
@@ -363,7 +427,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
         <div className="glass-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <h2 style={{ fontSize: '20px', margin: 0 }}>
-              📊 กราฟวิเคราะห์พลังความน่าจะเป็น AI Super v6 (0 - 9)
+              📊 กราฟวิเคราะห์พลังความน่าจะเป็น AI Super v10 (0 - 9)
             </h2>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.03)', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
               ประมวลผลสดใหม่ 100%
