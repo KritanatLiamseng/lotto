@@ -224,7 +224,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
         {/* AI AUTO-TUNING & WEIGHTS DASHBOARD */}
         <div className="glass-card" style={{ borderLeft: `5px solid #A855F7` }}>
           <h2 style={{ fontSize: '18px', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#A855F7' }}>⚙️</span> แผงปรับจูนค่าน้ำหนักโมเดล AI Super v6
+            <span style={{ color: '#A855F7' }}>⚙️</span> แผงปรับจูนค่าน้ำหนักโมเดล AI Super v10
           </h2>
 
           {/* Mode Selector */}
@@ -471,7 +471,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
         {/* Global Accuracy Gauge */}
         <div className="glass-card" style={{ textAlign: 'center' }}>
           <h3 style={{ fontSize: '16px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-            🏆 อัตราแม่นยำย้อนหลังของ AI Super v6
+            🏆 อัตราแม่นยำย้อนหลังของ AI Super v10
           </h3>
           <div style={{ fontSize: '48px', fontWeight: 'bold', color: theme.primary, textShadow: `0 0 20px ${theme.primary}` }}>
             {globalAccuracy}%

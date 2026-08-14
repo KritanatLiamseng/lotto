@@ -1178,14 +1178,34 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       });
     }
 
+    // --- SEEDABLE PRNG FOR STABLE GENETIC OPTIMIZER ---
+    let prngSeed = 12345;
+    if (history.length > 0) {
+      const latest = history[0];
+      const dateStr = latest.date || '';
+      let charSum = 0;
+      for (let i = 0; i < dateStr.length; i++) {
+        charSum += dateStr.charCodeAt(i);
+      }
+      const val = parseInt(latest.firstPrize || latest.twoDigitBack || '0', 10) || 0;
+      prngSeed = (history.length * 1000) + charSum + val;
+    }
+
+    const pseudoRandom = () => {
+      let t = prngSeed += 0x6D2B79F5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+
     // Genetic Algorithm (GA) Weight Optimizer (8 Gen * 60 Pop)
     const popSize = 60;
     const generations = 8;
     let population = [];
     
-    // Generate initial population
+    // Generate initial population using seedable PRNG
     for (let j = 0; j < popSize; j++) {
-      const chromosome = Array(15).fill(0).map(() => Math.random());
+      const chromosome = Array(15).fill(0).map(() => pseudoRandom());
       const sum = chromosome.reduce((a, b) => a + b, 0);
       population.push(chromosome.map(val => val / sum));
     }
@@ -1238,13 +1258,13 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       const nextPop = [...elite];
       
       while (nextPop.length < popSize) {
-        const parent1 = elite[Math.floor(Math.random() * elite.length)];
-        const parent2 = elite[Math.floor(Math.random() * elite.length)];
-        let child = parent1.map((w, idx) => Math.random() > 0.5 ? w : parent2[idx]);
+        const parent1 = elite[Math.floor(pseudoRandom() * elite.length)];
+        const parent2 = elite[Math.floor(pseudoRandom() * elite.length)];
+        let child = parent1.map((w, idx) => pseudoRandom() > 0.5 ? w : parent2[idx]);
         
-        if (Math.random() < 0.15) {
-          const mutIdx = Math.floor(Math.random() * 15);
-          child[mutIdx] = Math.max(0, child[mutIdx] + (Math.random() * 0.1 - 0.05));
+        if (pseudoRandom() < 0.15) {
+          const mutIdx = Math.floor(pseudoRandom() * 15);
+          child[mutIdx] = Math.max(0, child[mutIdx] + (pseudoRandom() * 0.1 - 0.05));
         }
         
         const sum = child.reduce((a, b) => a + b, 0);
