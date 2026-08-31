@@ -90,11 +90,17 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
     `${topDigits[3]}${topDigits[0]}${topDigits[1]}`
   ];
 
+  const recommendedSixDigits = [
+    `${topDigits[3]}${topDigits[4]}${topDigits[1]}${topDigits[0]}${topDigits[1]}${topDigits[2]}`,
+    `${topDigits[2]}${topDigits[4]}${topDigits[0]}${topDigits[3]}${topDigits[0]}${topDigits[1]}`
+  ];
+
   const handleCopyNumbers = () => {
     const textToCopy = `🔮 [LottoOracle AI] เลขเด็ดวิเคราะห์งวดถัดไป (${lottoType === 'lao' ? 'หวยลาว' : lottoType === 'hanoi' ? 'หวยฮานอย' : 'หวยไทย'})
 • วิ่ง/รูด: ${topDigits[0]}, ${topDigits[1]}
 • เจาะ 2 ตัว: ${recommendedTwoDigits.join(', ')}
 • ชุด 3 ตัว: ${recommendedThreeDigits.join(', ')}
+${lottoType === 'thai' ? `• ชุดรางวัลที่ 1 (6 หลัก): ${recommendedSixDigits.join(', ')}` : ''}
 ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1]}${topDigits[2]}${predictions[3]?.digit || '9'}` : ''}
 ⚡ ประมวลผลและปรับแต่งด้วย AI Super v10 Genetic Optimizer (15-Layer Ensemble)`;
 
@@ -217,6 +223,35 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
               ))}
             </div>
           </div>
+
+          {lottoType === 'thai' && (
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '8px' }}>👑 ชุดรางวัลที่ 1 แนะนำ (เลข 6 หลัก)</div>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                {recommendedSixDigits.map((num, i) => (
+                  <span
+                    key={i}
+                    className="numbers-font"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.12) 0%, rgba(255, 165, 0, 0.06) 100%)',
+                      border: '1px solid rgba(255, 215, 0, 0.45)',
+                      color: 'var(--gold)',
+                      padding: '8px 16px',
+                      borderRadius: '12px',
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      letterSpacing: '3px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      boxShadow: '0 0 15px rgba(255, 215, 0, 0.15)'
+                    }}
+                  >
+                    {num}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {lottoType === 'lao' && (
             <div style={{ marginBottom: '16px' }}>
