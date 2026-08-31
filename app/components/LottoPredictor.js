@@ -91,8 +91,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
   ];
 
   const recommendedSixDigits = [
-    `${topDigits[3]}${topDigits[4]}${topDigits[1]}${topDigits[0]}${topDigits[1]}${topDigits[2]}`,
-    `${topDigits[2]}${topDigits[4]}${topDigits[0]}${topDigits[3]}${topDigits[0]}${topDigits[1]}`
+    `${topDigits[3]}${topDigits[4]}${topDigits[1]}${topDigits[0]}${topDigits[1]}${topDigits[2]}`
   ];
 
   const handleCopyNumbers = () => {
@@ -100,7 +99,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
 • วิ่ง/รูด: ${topDigits[0]}, ${topDigits[1]}
 • เจาะ 2 ตัว: ${recommendedTwoDigits.join(', ')}
 • ชุด 3 ตัว: ${recommendedThreeDigits.join(', ')}
-${lottoType === 'thai' ? `• ชุดรางวัลที่ 1 (6 หลัก): ${recommendedSixDigits.join(', ')}` : ''}
+${lottoType === 'thai' ? `• ชุดรางวัลที่ 1 (6 หลัก): ${recommendedSixDigits[0]}` : ''}
 ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1]}${topDigits[2]}${predictions[3]?.digit || '9'}` : ''}
 ⚡ ประมวลผลและปรับแต่งด้วย AI Super v10 Genetic Optimizer (15-Layer Ensemble)`;
 
