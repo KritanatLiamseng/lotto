@@ -1,6 +1,14 @@
 // Historical Thai Lottery Database (2024 - 2026)
 export const lottoHistory = [
   {
+    date: "16 สิงหาคม 2569",
+    firstPrize: "095867",
+    threeDigitFront: ["334", "212"],
+    threeDigitBack: ["697", "728"],
+    twoDigitBack: "28",
+    status: "official"
+  },
+  {
     date: "1 สิงหาคม 2569",
     firstPrize: "932479",
     threeDigitFront: ["413", "672"],
@@ -628,8 +636,7 @@ export const hanoiLottoHistory = [
     date: "14 กรกฎาคม 2569",
     special: { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: "39201", twoDigitBack: "01", threeDigitBack: "201", status: "official" },
     normal: { name: "ฮานอยปกติ", time: "18:30 น.", firstPrize: "95182", twoDigitBack: "82", threeDigitBack: "182", status: "official" },
-    vip: { name: "ฮานอย VIP", time: "19:15 น.", firstPrize: "50293", twoDigitBack: "93", threeDigitBack: "293", status: "official" }
-  },
+},
   {
     date: "13 กรกฎาคม 2569",
     special: { name: "ฮานอยพิเศษ", time: "17:15 น.", firstPrize: "42010", twoDigitBack: "10", threeDigitBack: "010", status: "official" },
@@ -656,7 +663,64 @@ export const hanoiLottoHistory = [
   }
 ];
 
-// Helper to filter sub-draws for calculations based on active selection (e.g. Star, VIP, Special, Normal)
+function extractDrawDigits(draw) {
+  if (!draw) return [];
+  const digits = [];
+  if (draw.twoDigitBack && draw.twoDigitBack.length === 2) {
+    digits.push({ d: parseInt(draw.twoDigitBack[0], 10), w: 1.0 });
+    digits.push({ d: parseInt(draw.twoDigitBack[1], 10), w: 1.0 });
+  }
+  if (draw.firstPrize && draw.firstPrize.length >= 2) {
+    const top2 = draw.firstPrize.slice(-2);
+    digits.push({ d: parseInt(top2[0], 10), w: 0.9 });
+    digits.push({ d: parseInt(top2[1], 10), w: 0.9 });
+  }
+  if (Array.isArray(draw.threeDigitBack)) {
+    draw.threeDigitBack.forEach(t3 => {
+      if (t3 && t3.length === 3) {
+        digits.push({ d: parseInt(t3[0], 10), w: 0.4 });
+        digits.push({ d: parseInt(t3[1], 10), w: 0.4 });
+        digits.push({ d: parseInt(t3[2], 10), w: 0.4 });
+      }
+    });
+  } else if (typeof draw.threeDigitBack === 'string' && draw.threeDigitBack.length === 3) {
+    digits.push({ d: parseInt(draw.threeDigitBack[0], 10), w: 0.4 });
+    digits.push({ d: parseInt(draw.threeDigitBack[1], 10), w: 0.4 });
+    digits.push({ d: parseInt(draw.threeDigitBack[2], 10), w: 0.4 });
+  }
+  if (Array.isArray(draw.threeDigitFront)) {
+    draw.threeDigitFront.forEach(t3 => {
+      if (t3 && t3.length === 3) {
+        digits.push({ d: parseInt(t3[0], 10), w: 0.3 });
+        digits.push({ d: parseInt(t3[1], 10), w: 0.3 });
+        digits.push({ d: parseInt(t3[2], 10), w: 0.3 });
+      }
+    });
+  }
+  return digits;
+}
+
+function extractDrawPairs(draw) {
+  if (!draw) return [];
+  const pairs = [];
+  if (draw.twoDigitBack && draw.twoDigitBack.length === 2) {
+    pairs.push({
+      d1: parseInt(draw.twoDigitBack[0], 10),
+      d2: parseInt(draw.twoDigitBack[1], 10),
+      w: 1.0
+    });
+  }
+  if (draw.firstPrize && draw.firstPrize.length >= 2) {
+    const top2 = draw.firstPrize.slice(-2);
+    pairs.push({
+      d1: parseInt(top2[0], 10),
+      d2: parseInt(top2[1], 10),
+      w: 0.9
+    });
+  }
+  return pairs;
+}
+
 export function getSubDrawsOnly(history = [], lottoType = 'thai', subKey = 'default') {
   const list = [];
   let validKey = subKey;
@@ -689,18 +753,11 @@ export function getSubDrawsOnly(history = [], lottoType = 'thai', subKey = 'defa
   return list;
 }
 
-// ----------------------------------------------------
-// ADVANCED HYBRID STATISTICAL PREDICTION ENGINE
-// ----------------------------------------------------
-
-// Calculator 1: Digit Frequency (Primary Draws)
 export function getDigitStats(history = []) {
-  // Safe extraction of flat draws for frequency calculation
   const counts = Array(10).fill(0);
   let totalTwoDigits = 0;
 
   history.forEach(draw => {
-    // If nested object format
     const twoDigits = draw.twoDigitBack;
     if (twoDigits && twoDigits.length === 2) {
       counts[parseInt(twoDigits[0])]++;
@@ -716,7 +773,6 @@ export function getDigitStats(history = []) {
   }));
 }
 
-// Calculator 2: Dynamic Probability Model using Upgraded Multi-Agent AI Hybrid Ensemble Model v2
 export function getPredictionStats(history = [], tuningMode = 'auto', customWeights = null) {
   const defaultWeights = { 
     wRec: 0.12, wCo: 0.10, wOvd: 0.05, wMrk: 0.08, wMrk2: 0.06, 
@@ -730,7 +786,6 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     return fallback;
   }
 
-  // Fallback if data is too small to compute advanced matrices
   if (history.length < 5) {
     const fallback = Array(10).fill(0).map((_, i) => ({
       digit: i,
@@ -741,39 +796,29 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     return fallback;
   }
 
-  // --- LAYER CALCULATOR HELPER ---
   const calculate15Layers = (data) => {
-    // 1. Recency
     const recencyCounts = Array(10).fill(0);
     let totalWeights = 0;
-    const recencyLimit = Math.min(data.length, 10);
+    const recencyLimit = Math.min(data.length, 12);
     for (let i = 0; i < recencyLimit; i++) {
       const draw = data[i];
-      const weight = Math.pow(0.35, i) * (i === 0 ? 3.0 : i === 1 ? 1.8 : 1.0);
-      const d1 = draw.twoDigitBack;
-      if (d1 && d1.length === 2) {
-        recencyCounts[parseInt(d1[0], 10)] += weight;
-        recencyCounts[parseInt(d1[1], 10)] += weight;
-        totalWeights += (weight * 2);
-      }
-      if (draw.threeDigitBack && draw.threeDigitBack.length === 3) {
-        const d3_0 = parseInt(draw.threeDigitBack[0], 10);
-        recencyCounts[d3_0] += (weight * 0.5);
-        totalWeights += (weight * 0.5);
-      }
+      const timeDecay = Math.pow(0.35, i) * (i === 0 ? 3.0 : i === 1 ? 1.8 : 1.0);
+      const extracted = extractDrawDigits(draw);
+      extracted.forEach(item => {
+        const w = timeDecay * item.w;
+        recencyCounts[item.d] += w;
+        totalWeights += w;
+      });
     }
     const recencyScores = recencyCounts.map(count => count / (totalWeights || 1));
 
-    // 2. Co-Occurrence
     const coOccur = Array(10).fill(0).map(() => Array(10).fill(0));
     data.forEach(draw => {
-      const d = draw.twoDigitBack;
-      if (d && d.length === 2) {
-        const u = parseInt(d[0], 10);
-        const v = parseInt(d[1], 10);
-        coOccur[u][v]++;
-        coOccur[v][u]++;
-      }
+      const pairs = extractDrawPairs(draw);
+      pairs.forEach(p => {
+        coOccur[p.d1][p.d2] += p.w;
+        coOccur[p.d2][p.d1] += p.w;
+      });
     });
     const coOccurScores = Array(10).fill(0);
     for (let u = 0; u < 10; u++) {
@@ -786,12 +831,11 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumCoOccur = coOccurScores.reduce((a, b) => a + b, 0);
     const normalizedCoOccur = coOccurScores.map(val => val / (sumCoOccur || 1));
 
-    // 3. Overdue
     const lastSeen = Array(10).fill(99);
     for (let d = 0; d < 10; d++) {
       for (let i = 0; i < data.length; i++) {
-        const d1 = data[i].twoDigitBack;
-        if (d1 && (parseInt(d1[0], 10) === d || parseInt(d1[1], 10) === d)) {
+        const extracted = extractDrawDigits(data[i]);
+        if (extracted.some(item => item.d === d)) {
           lastSeen[d] = i;
           break;
         }
@@ -799,69 +843,54 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     }
     const overdueScores = lastSeen.map(gap => Math.min(gap, 15) / 15);
 
-    // 4. Markov 1st-Order
     const transitionMatrix = Array(10).fill(0).map(() => Array(10).fill(0));
     for (let i = 0; i < data.length - 1; i++) {
-      const currentDraw = data[i].twoDigitBack;
-      const nextDraw = data[i + 1].twoDigitBack;
-      if (currentDraw && currentDraw.length === 2 && nextDraw && nextDraw.length === 2) {
-        const cur1 = parseInt(currentDraw[0], 10);
-        const cur2 = parseInt(currentDraw[1], 10);
-        const nxt1 = parseInt(nextDraw[0], 10);
-        const nxt2 = parseInt(nextDraw[1], 10);
-        
-        transitionMatrix[nxt1][cur1]++;
-        transitionMatrix[nxt1][cur2]++;
-        transitionMatrix[nxt2][cur1]++;
-        transitionMatrix[nxt2][cur2]++;
+      const curPairs = extractDrawPairs(data[i]);
+      const nxtPairs = extractDrawPairs(data[i + 1]);
+      if (curPairs.length > 0 && nxtPairs.length > 0) {
+        const cur = curPairs[0];
+        const nxt = nxtPairs[0];
+        transitionMatrix[nxt.d1][cur.d1]++;
+        transitionMatrix[nxt.d1][cur.d2]++;
+        transitionMatrix[nxt.d2][cur.d1]++;
+        transitionMatrix[nxt.d2][cur.d2]++;
       }
     }
-    
     const markovScores = Array(10).fill(0);
-    const latestDraw = data[0].twoDigitBack;
-    if (latestDraw && latestDraw.length === 2) {
-      const lat1 = parseInt(latestDraw[0], 10);
-      const lat2 = parseInt(latestDraw[1], 10);
+    const latestPairs = extractDrawPairs(data[0]);
+    if (latestPairs.length > 0) {
+      const lat = latestPairs[0];
       for (let d = 0; d < 10; d++) {
-        const transProb = (transitionMatrix[lat1][d] + transitionMatrix[lat2][d]) / 2;
-        markovScores[d] = transProb;
+        markovScores[d] = (transitionMatrix[lat.d1][d] + transitionMatrix[lat.d2][d]) / 2;
       }
     }
     const sumMarkov = markovScores.reduce((a, b) => a + b, 0);
     const normalizedMarkov = markovScores.map(val => val / (sumMarkov || 1));
 
-    // 5. Markov 2nd-Order
     const transitionMatrix2 = {};
     for (let i = 0; i < data.length - 2; i++) {
-      const current = data[i].twoDigitBack;
-      const prev = data[i + 1].twoDigitBack;
-      const prev2 = data[i + 2].twoDigitBack;
-      if (current && current.length === 2 && prev && prev.length === 2 && prev2 && prev2.length === 2) {
-        const c1 = parseInt(current[0], 10);
-        const c2 = parseInt(current[1], 10);
-        const p1 = parseInt(prev[0], 10);
-        const p2 = parseInt(prev[1], 10);
-        const p2_1 = parseInt(prev2[0], 10);
-        const p2_2 = parseInt(prev2[1], 10);
-
-        const states = [`${p2_1}_${p1}`, `${p2_1}_${p2}`, `${p2_2}_${p1}`, `${p2_2}_${p2}`];
+      const curP = extractDrawPairs(data[i]);
+      const prevP = extractDrawPairs(data[i + 1]);
+      const prev2P = extractDrawPairs(data[i + 2]);
+      if (curP.length > 0 && prevP.length > 0 && prev2P.length > 0) {
+        const c = curP[0];
+        const p = prevP[0];
+        const p2 = prev2P[0];
+        const states = [`${p2.d1}_${p.d1}`, `${p2.d1}_${p.d2}`, `${p2.d2}_${p.d1}`, `${p2.d2}_${p.d2}`];
         states.forEach(state => {
           if (!transitionMatrix2[state]) transitionMatrix2[state] = Array(10).fill(0);
-          transitionMatrix2[state][c1]++;
-          transitionMatrix2[state][c2]++;
+          transitionMatrix2[state][c.d1]++;
+          transitionMatrix2[state][c.d2]++;
         });
       }
     }
     const markov2Scores = Array(10).fill(0);
-    if (data.length >= 2 && latestDraw && latestDraw.length === 2) {
-      const prevDraw = data[1].twoDigitBack;
-      if (prevDraw && prevDraw.length === 2) {
-        const lat1 = parseInt(latestDraw[0], 10);
-        const lat2 = parseInt(latestDraw[1], 10);
-        const p1 = parseInt(prevDraw[0], 10);
-        const p2 = parseInt(prevDraw[1], 10);
-
-        const activeStates = [`${lat1}_${p1}`, `${lat1}_${p2}`, `${lat2}_${p1}`, `${lat2}_${p2}`];
+    if (data.length >= 2 && latestPairs.length > 0) {
+      const prevPairs = extractDrawPairs(data[1]);
+      if (prevPairs.length > 0) {
+        const lat = latestPairs[0];
+        const p = prevPairs[0];
+        const activeStates = [`${lat.d1}_${p.d1}`, `${lat.d1}_${p.d2}`, `${lat.d2}_${p.d1}`, `${lat.d2}_${p.d2}`];
         activeStates.forEach(state => {
           if (transitionMatrix2[state]) {
             for (let d = 0; d < 10; d++) {
@@ -874,17 +903,16 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumMarkov2 = markov2Scores.reduce((a, b) => a + b, 0);
     const normalizedMarkov2 = markov2Scores.map(val => val / (sumMarkov2 || 1));
 
-    // 6. Positional
     const tensCounts = Array(10).fill(0);
     const onesCounts = Array(10).fill(0);
     const posLimit = Math.min(data.length, 15);
     for (let i = 0; i < posLimit; i++) {
-      const d = data[i].twoDigitBack;
-      if (d && d.length === 2) {
-        const w = Math.pow(0.90, i);
-        tensCounts[parseInt(d[0], 10)] += w;
-        onesCounts[parseInt(d[1], 10)] += w;
-      }
+      const pairs = extractDrawPairs(data[i]);
+      const w = Math.pow(0.90, i);
+      pairs.forEach(p => {
+        tensCounts[p.d1] += w * p.w;
+        onesCounts[p.d2] += w * p.w;
+      });
     }
     const positionalScores = Array(10).fill(0);
     for (let d = 0; d < 10; d++) {
@@ -893,17 +921,16 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumPos = positionalScores.reduce((a, b) => a + b, 0);
     const normalizedPositional = positionalScores.map(val => val / (sumPos || 1));
 
-    // 7. Arithmetic
     const sumCounts = Array(19).fill(0);
     let sumWeights = 0;
     for (let i = 0; i < posLimit; i++) {
-      const d = data[i].twoDigitBack;
-      if (d && d.length === 2) {
-        const w = Math.pow(0.90, i);
-        const digitSum = parseInt(d[0], 10) + parseInt(d[1], 10);
-        sumCounts[digitSum] += w;
-        sumWeights += w;
-      }
+      const pairs = extractDrawPairs(data[i]);
+      const w = Math.pow(0.90, i);
+      pairs.forEach(p => {
+        const digitSum = p.d1 + p.d2;
+        sumCounts[digitSum] += w * p.w;
+        sumWeights += w * p.w;
+      });
     }
     const sumProbabilities = sumCounts.map(count => count / (sumWeights || 1));
     const arithmeticScores = Array(10).fill(0);
@@ -917,42 +944,41 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumArith = arithmeticScores.reduce((a, b) => a + b, 0);
     const normalizedArithmetic = arithmeticScores.map(val => val / (sumArith || 1));
 
-    // 8. Modulo
     const moduloCounts = Array(10).fill(0);
     for (let i = 0; i < posLimit; i++) {
-      const d = data[i].twoDigitBack;
-      if (d && d.length === 2) {
-        const w = Math.pow(0.88, i);
-        const diff = Math.abs(parseInt(d[0], 10) - parseInt(d[1], 10));
+      const pairs = extractDrawPairs(data[i]);
+      const w = Math.pow(0.88, i);
+      pairs.forEach(p => {
+        const diff = Math.abs(p.d1 - p.d2);
         const mod = diff % 5;
         for (let digit = 0; digit < 10; digit++) {
           if (digit % 5 === mod) {
-            moduloCounts[digit] += w;
+            moduloCounts[digit] += w * p.w;
           }
         }
-      }
+      });
     }
     const sumMod = moduloCounts.reduce((a, b) => a + b, 0);
     const normalizedModulo = moduloCounts.map(val => val / (sumMod || 1));
 
-    // 9. Bayesian
-    const getOEState = (dStr) => {
-      if (!dStr || dStr.length !== 2) return 0;
-      return (parseInt(dStr[0], 10) % 2) * 2 + (parseInt(dStr[1], 10) % 2);
+    const getOEState = (draw) => {
+      const pairs = extractDrawPairs(draw);
+      if (pairs.length === 0) return 0;
+      return (pairs[0].d1 % 2) * 2 + (pairs[0].d2 % 2);
     };
     const stateCounts = Array(4).fill(0);
     const digitStateFrequencies = Array(10).fill(0).map(() => Array(4).fill(0));
     for (let i = 0; i < data.length - 1; i++) {
-      const currentOE = getOEState(data[i].twoDigitBack);
-      const prevOE = getOEState(data[i + 1].twoDigitBack);
+      const currentOE = getOEState(data[i]);
+      const prevOE = getOEState(data[i + 1]);
       stateCounts[prevOE]++;
-      const cur = data[i].twoDigitBack;
-      if (cur && cur.length === 2) {
-        digitStateFrequencies[parseInt(cur[0], 10)][prevOE]++;
-        digitStateFrequencies[parseInt(cur[1], 10)][prevOE]++;
-      }
+      const pairs = extractDrawPairs(data[i]);
+      pairs.forEach(p => {
+        digitStateFrequencies[p.d1][prevOE] += p.w;
+        digitStateFrequencies[p.d2][prevOE] += p.w;
+      });
     }
-    const latestOE = getOEState(data[0].twoDigitBack);
+    const latestOE = getOEState(data[0]);
     const bayesianScores = Array(10).fill(0);
     for (let d = 0; d < 10; d++) {
       const stateCount = stateCounts[latestOE];
@@ -961,7 +987,6 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumBayes = bayesianScores.reduce((a, b) => a + b, 0);
     const normalizedBayes = bayesianScores.map(val => val / (sumBayes || 1));
 
-    // 10. Fibonacci
     const fibonacciNumbers = [1, 2, 3, 5, 8, 13, 21, 34];
     const fibonacciScores = Array(10).fill(0);
     for (let d = 0; d < 10; d++) {
@@ -977,29 +1002,30 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumFib = fibonacciScores.reduce((a, b) => a + b, 0);
     const normalizedFibonacci = fibonacciScores.map(val => val / (sumFib || 1));
 
-    // 11. Momentum Index
     const momentumScores = Array(10).fill(0);
     const shortLimit = Math.min(data.length, 5);
     const longLimit = Math.min(data.length, 20);
     const shortCounts = Array(10).fill(0);
+    let shortTotal = 0;
     for (let i = 0; i < shortLimit; i++) {
-      const d = data[i].twoDigitBack;
-      if (d && d.length === 2) {
-        shortCounts[parseInt(d[0], 10)]++;
-        shortCounts[parseInt(d[1], 10)]++;
-      }
+      const digits = extractDrawDigits(data[i]);
+      digits.forEach(item => {
+        shortCounts[item.d] += item.w;
+        shortTotal += item.w;
+      });
     }
     const longCounts = Array(10).fill(0);
+    let longTotal = 0;
     for (let i = 0; i < longLimit; i++) {
-      const d = data[i].twoDigitBack;
-      if (d && d.length === 2) {
-        longCounts[parseInt(d[0], 10)]++;
-        longCounts[parseInt(d[1], 10)]++;
-      }
+      const digits = extractDrawDigits(data[i]);
+      digits.forEach(item => {
+        longCounts[item.d] += item.w;
+        longTotal += item.w;
+      });
     }
     for (let d = 0; d < 10; d++) {
-      const shortTerm = shortCounts[d] / (shortLimit * 2 || 1);
-      const longTerm = longCounts[d] / (longLimit * 2 || 1);
+      const shortTerm = shortCounts[d] / (shortTotal || 1);
+      const longTerm = longCounts[d] / (longTotal || 1);
       momentumScores[d] = shortTerm - longTerm;
     }
     const minMom = Math.min(...momentumScores);
@@ -1007,27 +1033,25 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumMom = positiveMom.reduce((a, b) => a + b, 0);
     const normalizedMomentum = positiveMom.map(val => val / (sumMom || 1));
 
-    // 12. Benford Skewness Deviation
     const expectedFreq = 0.10;
     const slidingLimit = Math.min(data.length, 25);
     const digitCounts = Array(10).fill(0);
+    let slidingTotal = 0;
     for (let i = 0; i < slidingLimit; i++) {
-      const d = data[i].twoDigitBack;
-      if (d && d.length === 2) {
-        digitCounts[parseInt(d[0], 10)]++;
-        digitCounts[parseInt(d[1], 10)]++;
-      }
+      const digits = extractDrawDigits(data[i]);
+      digits.forEach(item => {
+        digitCounts[item.d] += item.w;
+        slidingTotal += item.w;
+      });
     }
-    const totalD = slidingLimit * 2;
     const benfordScores = Array(10).fill(0);
     for (let d = 0; d < 10; d++) {
-      const observed = digitCounts[d] / (totalD || 1);
+      const observed = digitCounts[d] / (slidingTotal || 1);
       benfordScores[d] = Math.max(0, expectedFreq - observed) + 0.01;
     }
     const sumBen = benfordScores.reduce((a, b) => a + b, 0);
     const normalizedBenford = benfordScores.map(v => v / (sumBen || 1));
 
-    // 13. Shannon Entropy
     const entropyScores = Array(10).fill(0);
     const blocks = 4;
     const blockSize = 6;
@@ -1036,12 +1060,10 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       for (let b = 0; b < blocks; b++) {
         for (let i = b * blockSize; i < (b + 1) * blockSize; i++) {
           if (i >= data.length) break;
-          const draw = data[i];
-          const dStr = draw.twoDigitBack;
-          if (dStr && dStr.length === 2) {
-            if (parseInt(dStr[0], 10) === d) blockCounts[b]++;
-            if (parseInt(dStr[1], 10) === d) blockCounts[b]++;
-          }
+          const digits = extractDrawDigits(data[i]);
+          digits.forEach(item => {
+            if (item.d === d) blockCounts[b] += item.w;
+          });
         }
       }
       const sumC = blockCounts.reduce((a, b) => a + b, 0);
@@ -1061,18 +1083,15 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumEnt = entropyScores.reduce((a, b) => a + b, 0);
     const normalizedEntropy = entropyScores.map(v => v / (sumEnt || 1));
 
-    // 14. Fourier Sinusoidal Spectral Density
     const fourierScores = Array(10).fill(0);
     const fN = Math.min(data.length, 30);
     const fPeriods = [3, 5, 8, 12];
     for (let d = 0; d < 10; d++) {
       const x = Array(fN).fill(0);
       for (let i = 0; i < fN; i++) {
-        const dStr = data[i].twoDigitBack;
-        if (dStr && dStr.length === 2) {
-          if (parseInt(dStr[0], 10) === d || parseInt(dStr[1], 10) === d) {
-            x[i] = 1;
-          }
+        const digits = extractDrawDigits(data[i]);
+        if (digits.some(item => item.d === d)) {
+          x[i] = 1;
         }
       }
       let maxPsd = -1;
@@ -1325,6 +1344,81 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
   return sortedList;
 }
 
+// Calculator: Day Power (เลขกำลังวัน) & Day-of-Week Resonance
+export function getDayPowerStats(history = [], targetDateStr = null) {
+  const dayNames = ["วันอาทิตย์", "วันจันทร์", "วันอังคาร", "วันพุธ", "วันพฤหัสบดี", "วันศุกร์", "วันเสาร์"];
+  const dayPowerMap = [
+    { day: "วันอาทิตย์", power: 6, primary: [1, 8], secondary: [4, 0, 9], advice: "เด่น 1 - 8 มงคลวันอาทิตย์" },
+    { day: "วันจันทร์", power: 18, primary: [2, 9], secondary: [7, 4, 0], advice: "เด่น 2 - 9 มงคลวันจันทร์" },
+    { day: "วันอังคาร", power: 8, primary: [3, 0], secondary: [5, 8, 7, 1], advice: "เด่น 3 - 0 - 5 - 8 มงคลวันอังคาร" },
+    { day: "วันพุธ", power: 17, primary: [4, 2], secondary: [8, 5, 6], advice: "เด่น 4 - 2 มงคลวันพุธ" },
+    { day: "วันพฤหัสบดี", power: 19, primary: [5, 1], secondary: [9, 3, 7], advice: "เด่น 5 - 1 มงคลวันพฤหัสบดี" },
+    { day: "วันศุกร์", power: 21, primary: [6, 3], secondary: [4, 1, 8], advice: "เด่น 6 - 3 มงคลวันศุกร์" },
+    { day: "วันเสาร์", power: 10, primary: [7, 6], secondary: [2, 9, 5], advice: "เด่น 7 - 6 มงคลวันเสาร์" }
+  ];
+
+  const parseThaiDateHelper = (dateStr) => {
+    if (!dateStr) return null;
+    const monthsThai = [
+      "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+      "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+    ];
+    const parts = dateStr.trim().split(/\s+/);
+    if (parts.length !== 3) return null;
+    const day = parseInt(parts[0]);
+    const monthThai = parts[1];
+    const yearThai = parseInt(parts[2]);
+    const monthIdx = monthsThai.indexOf(monthThai);
+    if (monthIdx === -1) return null;
+    const yearEng = yearThai - 543;
+    return new Date(yearEng, monthIdx, day);
+  };
+
+  let dayIdx = 2; // Default Tuesday (1 Sep 2569)
+  if (targetDateStr) {
+    const dt = parseThaiDateHelper(targetDateStr);
+    if (dt) dayIdx = dt.getDay();
+  } else {
+    const now = new Date();
+    dayIdx = now.getDay();
+  }
+
+  const baseInfo = dayPowerMap[dayIdx] || dayPowerMap[2];
+
+  // Calculate historical frequency for this specific day of week
+  const dayCounts = Array(10).fill(0);
+  let totalDayHits = 0;
+  (history || []).forEach(draw => {
+    if (!draw || !draw.date) return;
+    const dt = parseThaiDateHelper(draw.date);
+    if (dt && dt.getDay() === dayIdx) {
+      if (draw.twoDigitBack && draw.twoDigitBack.length === 2) {
+        dayCounts[parseInt(draw.twoDigitBack[0], 10)]++;
+        dayCounts[parseInt(draw.twoDigitBack[1], 10)]++;
+        totalDayHits += 2;
+      }
+      if (draw.firstPrize && draw.firstPrize.length >= 2) {
+        const top2 = draw.firstPrize.slice(-2);
+        dayCounts[parseInt(top2[0], 10)] += 0.8;
+        dayCounts[parseInt(top2[1], 10)] += 0.8;
+        totalDayHits += 1.6;
+      }
+    }
+  });
+
+  const historicalRankings = dayCounts
+    .map((count, digit) => ({ digit, count, pct: Math.round((count / (totalDayHits || 1)) * 100) }))
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    dayName: dayNames[dayIdx],
+    powerNumber: baseInfo.power,
+    primaryDigits: baseInfo.primary,
+    secondaryDigits: baseInfo.secondary,
+    advice: baseInfo.advice,
+    topHistoricalForDay: historicalRankings.slice(0, 4).map(r => r.digit)
+  };
+}
 
 // Calculator 3: Consecutive & Twin Number analysis
 export function getTwinConsecutiveStats(history = []) {

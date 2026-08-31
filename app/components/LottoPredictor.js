@@ -8,7 +8,8 @@ import {
   getDigitStats, 
   getGlobalAccuracy,
   getTwinConsecutiveStats,
-  getPeriodicityStats
+  getPeriodicityStats,
+  getDayPowerStats
 } from '../data/lottoHistory';
 
 export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
@@ -40,6 +41,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
   const twinConsecutive = React.useMemo(() => getTwinConsecutiveStats(lottoData), [lottoData]);
   const periodicity = React.useMemo(() => getPeriodicityStats(lottoData).slice(0, 5), [lottoData]);
   const globalAccuracy = React.useMemo(() => getGlobalAccuracy(lottoData), [lottoData]);
+  const dayPower = React.useMemo(() => getDayPowerStats(lottoData), [lottoData]);
 
   const [copySuccess, setCopySuccess] = useState(false);
 
@@ -145,9 +147,16 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
               <span style={{ color: theme.primary }}>🔮</span> เลขเด่นแนะนำงวดถัดไป
             </h2>
             {lottoData && lottoData.length > 0 && (
-              <span style={{ fontSize: '12px', color: theme.primary, background: 'rgba(255,255,255,0.03)', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
-                ⚡ สถิติล่าสุดที่ประมวลผล: {lottoData[0]?.date}
-              </span>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.03)', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
+                  ⚡ สถิติล่าสุด: {lottoData[0]?.date}
+                </span>
+                {lottoType === 'thai' && (
+                  <span style={{ fontSize: '11px', color: 'var(--gold)', background: 'rgba(255,215,0,0.08)', padding: '4px 10px', borderRadius: '12px', border: '1px solid rgba(255,215,0,0.3)', fontWeight: 'bold' }}>
+                    🎯 พยากรณ์งวดประจำวันที่: 1 กันยายน 2569
+                  </span>
+                )}
+              </div>
             )}
           </div>
 
@@ -539,6 +548,42 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* DAY-OF-WEEK & POWER MATRIX WIDGET */}
+        <div className="glass-card" style={{ borderLeft: `5px solid #EC4899` }}>
+          <h3 style={{ fontSize: '16px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🌟 มิติตรงวัน & เลขกำลังวัน ({dayPower.dayName})
+          </h3>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 12px 0' }}>
+            วิเคราะห์สถิติความถี่และกำลังวันมงคลสำหรับงวดที่ออกตรงกับ {dayPower.dayName}
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '8px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.04)' }}>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>กำลังวัน:</span>
+              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#EC4899' }}>{dayPower.powerNumber}</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '8px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.04)' }}>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>เด่นประจำวัน:</span>
+              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#00E5FF' }}>{dayPower.primaryDigits.join(' - ')}</div>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '10px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>สถิติออกบ่อยสุดตรงกับ{dayPower.dayName}:</span>
+            <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+              {dayPower.topHistoricalForDay.map((d, i) => (
+                <span key={i} className="numbers-font" style={{ background: 'rgba(236,72,153,0.15)', border: '1px solid #EC4899', color: '#EC4899', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>
+                  {d}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ fontSize: '11px', color: '#FFF', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)' }}>
+            📢 {dayPower.advice}
           </div>
         </div>
 
