@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 
-export default function FamousNumbers({ lottoType = 'thai' }) {
+export default function FamousNumbers({ lottoType = 'thai', aiDigits = ['5', '7', '9', '2', '6'] }) {
   // Set up local state for likes/votes categorized by lottery type
   const [sources, setSources] = useState({
     thai: [

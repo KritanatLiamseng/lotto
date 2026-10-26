@@ -51,6 +51,31 @@ const generateDeterministicDraw = (seedStr, length = 4) => {
   return digits;
 };
 
+const getDatesSinceLatest = (latestDateStr) => {
+  const dates = [];
+  const start = parseThaiDate(latestDateStr);
+  if (!start) return dates;
+  
+  const end = new Date();
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  
+  const temp = new Date(start);
+  temp.setDate(temp.getDate() + 1);
+  
+  while (temp <= end) {
+    dates.push(new Date(temp));
+    temp.setDate(temp.getDate() + 1);
+  }
+  return dates;
+};
+
+const isSameDay = (d1, d2) => {
+  return d1.getFullYear() === d2.getFullYear() &&
+         d1.getMonth() === d2.getMonth() &&
+         d1.getDate() === d2.getDate();
+};
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState('predictor');
   const [activeLotto, setActiveLotto] = useState('thai');
@@ -296,30 +321,7 @@ export default function Home() {
     }
   }, []);
 
-  const getDatesSinceLatest = (latestDateStr) => {
-    const dates = [];
-    const start = parseThaiDate(latestDateStr);
-    if (!start) return dates;
-    
-    const end = new Date();
-    start.setHours(0, 0, 0, 0);
-    end.setHours(0, 0, 0, 0);
-    
-    const temp = new Date(start);
-    temp.setDate(temp.getDate() + 1);
-    
-    while (temp <= end) {
-      dates.push(new Date(temp));
-      temp.setDate(temp.getDate() + 1);
-    }
-    return dates;
-  };
 
-  const isSameDay = (d1, d2) => {
-    return d1.getFullYear() === d2.getFullYear() &&
-           d1.getMonth() === d2.getMonth() &&
-           d1.getDate() === d2.getDate();
-  };
 
   const activeData = databases[activeLotto];
   const subDataForPredictor = getSubDrawsOnly(activeData, activeLotto, activeSubLotto);
@@ -478,7 +480,7 @@ export default function Home() {
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent'
             }}>
-              LottoOracle AI Super v10
+              LottoOracle AI Super v12
             </h1>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
               ระบบวิเคราะห์ AI แม่นยำสูงพิเศษคำนวณเปรียบเทียบสถิติย้อนหลังสดใหม่ 100%
@@ -603,7 +605,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="footer">
-        <p>LottoOracle AI Super Engine v10 • ระบบวิเคราะห์ทางสถิติเพื่อความบันเทิงเท่านั้น</p>
+        <p>LottoOracle AI Super Engine v12 • ระบบวิเคราะห์ทางสถิติเพื่อความบันเทิงเท่านั้น</p>
       </footer>
     </div>
   );

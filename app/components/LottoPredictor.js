@@ -9,15 +9,17 @@ import {
   getGlobalAccuracy,
   getTwinConsecutiveStats,
   getPeriodicityStats,
-  getDayPowerStats
+  getDayPowerStats,
+  getNextThaiDrawDate
 } from '../data/lottoHistory';
 
 export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
   const [tuningMode, setTuningMode] = useState('auto'); // 'auto', 'balanced', 'recency', 'markov', 'custom'
   const [customWeights, setCustomWeights] = useState({
-    wRec: 0.12, wCo: 0.10, wOvd: 0.05, wMrk: 0.08, wMrk2: 0.06, 
-    wPos: 0.06, wAr: 0.05, wMod: 0.05, wBay: 0.08, wFib: 0.04, 
-    wMom: 0.06, wBen: 0.06, wEnt: 0.08, wFou: 0.08, wArm: 0.08 
+    wRec: 0.09, wCo: 0.08, wOvd: 0.04, wMrk: 0.07, wMrk2: 0.05, 
+    wPos: 0.05, wAr: 0.04, wMod: 0.04, wBay: 0.06, wFib: 0.04, 
+    wMom: 0.05, wBen: 0.05, wEnt: 0.06, wFou: 0.06, wArm: 0.06,
+    wKal: 0.06, wChi: 0.05, wMc: 0.06
   });
   const [activeCategory, setActiveCategory] = useState('gaps'); // 'gaps', 'markov', 'series', 'signal', 'math'
 
@@ -31,9 +33,10 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
   }, [lottoData, tuningMode, customWeights, optTrigger]);
 
   const activeWeights = predictions.activeWeights || {
-    wRec: 0.12, wCo: 0.10, wOvd: 0.05, wMrk: 0.08, wMrk2: 0.06, 
-    wPos: 0.06, wAr: 0.05, wMod: 0.05, wBay: 0.08, wFib: 0.04, 
-    wMom: 0.06, wBen: 0.06, wEnt: 0.08, wFou: 0.08, wArm: 0.08
+    wRec: 0.09, wCo: 0.08, wOvd: 0.04, wMrk: 0.07, wMrk2: 0.05, 
+    wPos: 0.05, wAr: 0.04, wMod: 0.04, wBay: 0.06, wFib: 0.04, 
+    wMom: 0.05, wBen: 0.05, wEnt: 0.06, wFou: 0.06, wArm: 0.06,
+    wKal: 0.06, wChi: 0.05, wMc: 0.06
   };
 
   const oddEven = React.useMemo(() => getOddEvenRatio(lottoData), [lottoData]);
@@ -41,7 +44,11 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
   const twinConsecutive = React.useMemo(() => getTwinConsecutiveStats(lottoData), [lottoData]);
   const periodicity = React.useMemo(() => getPeriodicityStats(lottoData).slice(0, 5), [lottoData]);
   const globalAccuracy = React.useMemo(() => getGlobalAccuracy(lottoData), [lottoData]);
-  const dayPower = React.useMemo(() => getDayPowerStats(lottoData), [lottoData]);
+  const nextTargetDate = React.useMemo(() => {
+    return getNextThaiDrawDate(lottoData[0]?.date);
+  }, [lottoData]);
+
+  const dayPower = React.useMemo(() => getDayPowerStats(lottoData, nextTargetDate), [lottoData, nextTargetDate]);
 
   const [copySuccess, setCopySuccess] = useState(false);
 
@@ -101,7 +108,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
 • ชุด 3 ตัว: ${recommendedThreeDigits.join(', ')}
 ${lottoType === 'thai' ? `• ชุดรางวัลที่ 1 (6 หลัก): ${recommendedSixDigits[0]}` : ''}
 ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1]}${topDigits[2]}${predictions[3]?.digit || '9'}` : ''}
-⚡ ประมวลผลและปรับแต่งด้วย AI Super v10 Genetic Optimizer (15-Layer Ensemble)`;
+⚡ ประมวลผลและปรับแต่งด้วย AI Super v12 Genetic Optimizer (15-Layer Ensemble)`;
 
     navigator.clipboard.writeText(textToCopy).then(() => {
       setCopySuccess(true);
@@ -158,7 +165,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
                 </span>
                 {lottoType === 'thai' && (
                   <span style={{ fontSize: '11px', color: 'var(--gold)', background: 'rgba(255,215,0,0.08)', padding: '4px 10px', borderRadius: '12px', border: '1px solid rgba(255,215,0,0.3)', fontWeight: 'bold' }}>
-                    🎯 พยากรณ์งวดประจำวันที่: 1 กันยายน 2569
+                    🎯 พยากรณ์งวดประจำวันที่: {nextTargetDate}
                   </span>
                 )}
               </div>
@@ -267,7 +274,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
         {/* AI AUTO-TUNING & WEIGHTS DASHBOARD */}
         <div className="glass-card" style={{ borderLeft: `5px solid #A855F7` }}>
           <h2 style={{ fontSize: '18px', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#A855F7' }}>⚙️</span> แผงปรับจูนค่าน้ำหนักโมเดล AI Super v10
+            <span style={{ color: '#A855F7' }}>⚙️</span> แผงปรับจูนค่าน้ำหนักโมเดล AI Super v12
           </h2>
 
           {/* Mode Selector */}
@@ -354,8 +361,11 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
                 { label: 'Momentum (สั้น/ยาว)', value: activeWeights.wMom || 0, color: '#795548' },
                 { label: 'Benford (เฉลี่ย)', value: activeWeights.wBen || 0, color: '#607D8B' },
                 { label: 'Entropy (Shannon)', value: activeWeights.wEnt || 0, color: '#E040FB' },
-                { label: 'Fourier (คาบไซน์)', value: activeWeights.wFou || 0, color: '#E040FB' },
-                { label: 'AR(2) Autoreg', value: activeWeights.wArm || 0, color: '#00E676' }
+                { label: 'Fourier (คาบไซน์)', value: activeWeights.wFou || 0, color: '#A855F7' },
+                { label: 'AR(2) Autoreg', value: activeWeights.wArm || 0, color: '#00E676' },
+                { label: 'Kalman Filter', value: activeWeights.wKal || 0, color: '#F59E0B' },
+                { label: 'Chi-Square (ตกค้าง)', value: activeWeights.wChi || 0, color: '#EC4899' },
+                { label: 'Monte Carlo (1K)', value: activeWeights.wMc || 0, color: '#8B5CF6' }
               ].map((item, idx) => (
                 <div key={idx} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '8px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{item.label}</span>
@@ -380,6 +390,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
                   { id: 'markov', label: '🔗 ความน่าจะเป็นต่อเนื่อง' },
                   { id: 'series', label: '📈 เทรนด์/อนุกรมเวลา' },
                   { id: 'signal', label: '🌀 สัญญาณคลื่น/ความโกลาหล' },
+                  { id: 'deep', label: '🧠 โมเดลจำลองขั้นสูง' },
                   { id: 'math', label: '📐 มิติโครงสร้างเลข' }
                 ].map(tab => (
                   <button
@@ -438,6 +449,14 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
                   ]
                 },
                 {
+                  cat: 'deep',
+                  sliders: [
+                    { key: 'wKal', label: 'Kalman Filter (ตัวกรองสัญญาณรบกวนสุ่ม DSP)', val: customWeights.wKal || 0 },
+                    { key: 'wChi', label: 'Chi-Square Residuals (ส่วนตกค้างทางสถิติเฉลี่ย)', val: customWeights.wChi || 0 },
+                    { key: 'wMc', label: 'Monte Carlo 1,000 Trials (จำลองผลสุ่ม 1,000 รอบ)', val: customWeights.wMc || 0 }
+                  ]
+                },
+                {
                   cat: 'math',
                   sliders: [
                     { key: 'wPos', label: 'Positional Tens/Ones (ความถี่ตำแหน่งหลักสิบ/หน่วย)', val: customWeights.wPos },
@@ -470,7 +489,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
         <div className="glass-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <h2 style={{ fontSize: '20px', margin: 0 }}>
-              📊 กราฟวิเคราะห์พลังความน่าจะเป็น AI Super v10 (0 - 9)
+              📊 กราฟวิเคราะห์พลังความน่าจะเป็น AI Super v12 (0 - 9)
             </h2>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.03)', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
               ประมวลผลสดใหม่ 100%
@@ -514,7 +533,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
         {/* Global Accuracy Gauge */}
         <div className="glass-card" style={{ textAlign: 'center' }}>
           <h3 style={{ fontSize: '16px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-            🏆 อัตราแม่นยำย้อนหลังของ AI Super v10
+            🏆 อัตราแม่นยำย้อนหลังของ AI Super v12
           </h3>
           <div style={{ fontSize: '48px', fontWeight: 'bold', color: theme.primary, textShadow: `0 0 20px ${theme.primary}` }}>
             {globalAccuracy}%

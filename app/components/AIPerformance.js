@@ -55,7 +55,56 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [], hist
         ];
       };
 
-      if (digitMode === '2digit') {
+      if (digitMode === '6digit' && lottoType === 'thai') {
+        const recs = [
+          `${topDigits[3]}${topDigits[4]}${topDigits[1]}${topDigits[0]}${topDigits[1]}${topDigits[2]}`
+        ];
+        const actual = draw.firstPrize;
+        if (!actual || actual.length !== 6) return;
+
+        const isExactHit = recs[0] === actual;
+        let exactPositionMatches = 0;
+        for (let i = 0; i < 6; i++) {
+          if (recs[0][i] === actual[i]) exactPositionMatches++;
+        }
+        
+        const actDigits = actual.split("").map(Number);
+        const matchedDigits = [];
+        actDigits.forEach(d => {
+          if (topDigits.includes(d) && !matchedDigits.includes(d)) matchedDigits.push(d);
+        });
+
+        let accuracy = 0;
+        if (isExactHit) accuracy = 100;
+        else if (exactPositionMatches >= 3) accuracy = 85;
+        else if (matchedDigits.length >= 5) accuracy = 80;
+        else if (matchedDigits.length >= 4) accuracy = 70;
+        else if (matchedDigits.length >= 3) accuracy = 55;
+        else accuracy = 40;
+
+        const fullDetails = `รางวัลที่ 1: ${draw.firstPrize} | เลขท้าย 2 ตัว: ${draw.twoDigitBack} | เลขหน้า 3 ตัว: ${draw.threeDigitFront?.join(', ') || 'ไม่มี'} | เลขท้าย 3 ตัว: ${draw.threeDigitBack?.join(', ') || 'ไม่มี'}`;
+
+        reports.push({
+          date: draw.date,
+          drawName: "หวยรัฐบาลไทย",
+          time: "16:00 น.",
+          lottoKey: "thai",
+          aiDigits: topDigits,
+          aiRecSets: recs,
+          actualResult: actual,
+          accuracy,
+          matchedDigits,
+          exactHit: isExactHit,
+          hitType: isExactHit ? 'direct' : 'none',
+          exactPositionMatches,
+          fullDetails
+        });
+
+        totalEvaluated++;
+        sumAccuracy += accuracy;
+        if (isExactHit || accuracy >= 70) fullHitsCount++;
+        else if (accuracy >= 50) partialHitsCount++;
+      } else if (digitMode === '2digit') {
         // --- 2 DIGIT BACKTEST ---
         if (lottoType === 'thai') {
           const recs = getTwoDigitRecs(topDigits);
@@ -348,7 +397,8 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [], hist
         <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.02)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-card)' }}>
           {[
             { id: '2digit', label: '🟢 ตรวจผลเลขท้าย 2 ตัว' },
-            { id: '3digit', label: '🔵 ตรวจผลเลขท้าย 3 ตัว' }
+            { id: '3digit', label: '🔵 ตรวจผลเลขท้าย 3 ตัว' },
+            ...(lottoType === 'thai' ? [{ id: '6digit', label: '👑 ตรวจผลรางวัลที่ 1 (6 หลัก)' }] : [])
           ].map(mode => (
             <button
               key={mode.id}
@@ -523,7 +573,7 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [], hist
                         fontWeight: 'bold',
                         animation: 'pulse 1.5s infinite'
                       }}>
-                        {digitMode === '2digit' ? 'เข้าชุดสองตัว!' : 'ตรง 3 ตรง!'}
+                        {digitMode === '6digit' ? 'ตรงรางวัลที่ 1 เต็มๆ!' : digitMode === '2digit' ? 'เข้าชุดสองตัว!' : 'ตรง 3 ตรง!'}
                       </span>
                     )}
                   </div>
@@ -548,7 +598,7 @@ export default function AIPerformance({ lottoType = 'thai', lottoData = [], hist
                   {/* AI Predictions */}
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                      {digitMode === '2digit' ? 'ชุดเลขท้าย 2 ตัวที่ AI คาดการณ์' : 'เลข 3 ตัวคาดการณ์หลัก'}
+                      {digitMode === '6digit' ? 'ชุดรางวัลที่ 1 (6 หลัก) ที่ AI คาดการณ์' : digitMode === '2digit' ? 'ชุดเลขท้าย 2 ตัวที่ AI คาดการณ์' : 'เลข 3 ตัวคาดการณ์หลัก'}
                     </div>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       {rep.aiRecSets?.map((set, sIdx) => {

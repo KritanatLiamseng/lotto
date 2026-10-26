@@ -7,6 +7,8 @@ export default function LuckyGenerator({ lottoType = 'thai' }) {
   const [twoDigit, setTwoDigit] = useState('--');
   const [threeDigit, setThreeDigit] = useState('---');
   const [fourDigit, setFourDigit] = useState('----'); // Specific to Lao
+  const [sixDigit, setSixDigit] = useState('------'); // Specific to Thai 1st Prize
+  const [thaiMode, setThaiMode] = useState('standard'); // 'standard' or 'sixDigit'
   
   // Dynamic number of balls depending on lottery type
   const [visibleBalls, setVisibleBalls] = useState([]);
@@ -16,6 +18,7 @@ export default function LuckyGenerator({ lottoType = 'thai' }) {
     setTwoDigit('--');
     setThreeDigit('---');
     setFourDigit('----');
+    setSixDigit('------');
     
     if (lottoType === 'lao') {
       setVisibleBalls([
@@ -24,6 +27,15 @@ export default function LuckyGenerator({ lottoType = 'thai' }) {
         { id: 3, val: '?', color: 'gold' },
         { id: 4, val: '?', color: 'cyan' }
       ]);
+    } else if (lottoType === 'thai' && thaiMode === 'sixDigit') {
+      setVisibleBalls([
+        { id: 1, val: '?', color: 'gold' },
+        { id: 2, val: '?', color: 'gold' },
+        { id: 3, val: '?', color: 'magenta' },
+        { id: 4, val: '?', color: 'cyan' },
+        { id: 5, val: '?', color: 'cyan' },
+        { id: 6, val: '?', color: 'gold' }
+      ]);
     } else {
       setVisibleBalls([
         { id: 1, val: '?', color: 'gold' },
@@ -31,7 +43,7 @@ export default function LuckyGenerator({ lottoType = 'thai' }) {
         { id: 3, val: '?', color: 'cyan' }
       ]);
     }
-  }, [lottoType]);
+  }, [lottoType, thaiMode]);
 
   // Synthetic Audio Generator
   const playSound = (type) => {
@@ -190,9 +202,44 @@ export default function LuckyGenerator({ lottoType = 'thai' }) {
           🔮 เครื่องหมุนลูกบอลนำโชค 
           {lottoType === 'lao' ? 'หวยลาว AI' : lottoType === 'hanoi' ? 'หวยฮานอย AI' : 'หวยไทย AI'}
         </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '32px', zIndex: 1, position: 'relative' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '16px', zIndex: 1, position: 'relative' }}>
           กดปุ่มสุ่มเพื่อคำนวณและประมวลผลดึงตัวเลขนำโชคส่วนตัวของคุณ
         </p>
+
+        {lottoType === 'thai' && (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '24px', position: 'relative', zIndex: 1 }}>
+            <button
+              onClick={() => setThaiMode('standard')}
+              style={{
+                background: thaiMode === 'standard' ? 'var(--gold)' : 'rgba(255,255,255,0.05)',
+                color: thaiMode === 'standard' ? '#000' : '#FFF',
+                border: '1px solid ' + (thaiMode === 'standard' ? 'var(--gold)' : 'rgba(255,255,255,0.1)'),
+                borderRadius: '20px',
+                padding: '6px 14px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              🎯 สุ่มเลขท้าย 2-3 ตัว
+            </button>
+            <button
+              onClick={() => setThaiMode('sixDigit')}
+              style={{
+                background: thaiMode === 'sixDigit' ? 'var(--gold)' : 'rgba(255,255,255,0.05)',
+                color: thaiMode === 'sixDigit' ? '#000' : '#FFF',
+                border: '1px solid ' + (thaiMode === 'sixDigit' ? 'var(--gold)' : 'rgba(255,255,255,0.1)'),
+                borderRadius: '20px',
+                padding: '6px 14px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              👑 สุ่มรางวัลที่ 1 (6 หลัก)
+            </button>
+          </div>
+        )}
 
         {/* Lottery Machine cage design */}
         <div style={{

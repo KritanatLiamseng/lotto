@@ -1,6 +1,38 @@
 // Historical Thai Lottery Database (2024 - 2026)
 export const lottoHistory = [
   {
+    date: "16 ตุลาคม 2569",
+    firstPrize: "482962",
+    threeDigitFront: ["561", "648"],
+    threeDigitBack: ["493", "919"],
+    twoDigitBack: "00",
+    status: "official"
+  },
+  {
+    date: "1 ตุลาคม 2569",
+    firstPrize: "718665",
+    threeDigitFront: ["053", "812"],
+    threeDigitBack: ["079", "566"],
+    twoDigitBack: "59",
+    status: "official"
+  },
+  {
+    date: "16 กันยายน 2569",
+    firstPrize: "608662",
+    threeDigitFront: ["230", "904"],
+    threeDigitBack: ["008", "408"],
+    twoDigitBack: "37",
+    status: "official"
+  },
+  {
+    date: "1 กันยายน 2569",
+    firstPrize: "199606",
+    threeDigitFront: ["173", "220"],
+    threeDigitBack: ["094", "388"],
+    twoDigitBack: "94",
+    status: "official"
+  },
+  {
     date: "16 สิงหาคม 2569",
     firstPrize: "095867",
     threeDigitFront: ["334", "212"],
@@ -773,11 +805,13 @@ export function getDigitStats(history = []) {
   }));
 }
 
+// Calculator 2: Dynamic Probability Model using Upgraded 18-Layer AI Super v12 Deep Ensemble Engine
 export function getPredictionStats(history = [], tuningMode = 'auto', customWeights = null) {
   const defaultWeights = { 
-    wRec: 0.12, wCo: 0.10, wOvd: 0.05, wMrk: 0.08, wMrk2: 0.06, 
-    wPos: 0.06, wAr: 0.05, wMod: 0.05, wBay: 0.08, wFib: 0.04, 
-    wMom: 0.06, wBen: 0.06, wEnt: 0.08, wFou: 0.08, wArm: 0.08 
+    wRec: 0.09, wCo: 0.08, wOvd: 0.04, wMrk: 0.07, wMrk2: 0.05, 
+    wPos: 0.05, wAr: 0.04, wMod: 0.04, wBay: 0.06, wFib: 0.04, 
+    wMom: 0.05, wBen: 0.05, wEnt: 0.06, wFou: 0.06, wArm: 0.06,
+    wKal: 0.06, wChi: 0.05, wMc: 0.06
   };
   
   if (history.length === 0) {
@@ -786,6 +820,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     return fallback;
   }
 
+  // Fallback if data is too small to compute advanced matrices
   if (history.length < 5) {
     const fallback = Array(10).fill(0).map((_, i) => ({
       digit: i,
@@ -796,7 +831,9 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     return fallback;
   }
 
-  const calculate15Layers = (data) => {
+  // --- LAYER CALCULATOR HELPER (18 LAYERS) ---
+  const calculate18Layers = (data, prng = Math.random) => {
+    // 1. Recency (Multi-Prize Weighted)
     const recencyCounts = Array(10).fill(0);
     let totalWeights = 0;
     const recencyLimit = Math.min(data.length, 12);
@@ -812,6 +849,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     }
     const recencyScores = recencyCounts.map(count => count / (totalWeights || 1));
 
+    // 2. Co-Occurrence (Multi-Prize Pairs)
     const coOccur = Array(10).fill(0).map(() => Array(10).fill(0));
     data.forEach(draw => {
       const pairs = extractDrawPairs(draw);
@@ -831,6 +869,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumCoOccur = coOccurScores.reduce((a, b) => a + b, 0);
     const normalizedCoOccur = coOccurScores.map(val => val / (sumCoOccur || 1));
 
+    // 3. Overdue
     const lastSeen = Array(10).fill(99);
     for (let d = 0; d < 10; d++) {
       for (let i = 0; i < data.length; i++) {
@@ -843,6 +882,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     }
     const overdueScores = lastSeen.map(gap => Math.min(gap, 15) / 15);
 
+    // 4. Markov 1st-Order
     const transitionMatrix = Array(10).fill(0).map(() => Array(10).fill(0));
     for (let i = 0; i < data.length - 1; i++) {
       const curPairs = extractDrawPairs(data[i]);
@@ -867,6 +907,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumMarkov = markovScores.reduce((a, b) => a + b, 0);
     const normalizedMarkov = markovScores.map(val => val / (sumMarkov || 1));
 
+    // 5. Markov 2nd-Order
     const transitionMatrix2 = {};
     for (let i = 0; i < data.length - 2; i++) {
       const curP = extractDrawPairs(data[i]);
@@ -903,6 +944,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumMarkov2 = markov2Scores.reduce((a, b) => a + b, 0);
     const normalizedMarkov2 = markov2Scores.map(val => val / (sumMarkov2 || 1));
 
+    // 6. Positional
     const tensCounts = Array(10).fill(0);
     const onesCounts = Array(10).fill(0);
     const posLimit = Math.min(data.length, 15);
@@ -921,6 +963,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumPos = positionalScores.reduce((a, b) => a + b, 0);
     const normalizedPositional = positionalScores.map(val => val / (sumPos || 1));
 
+    // 7. Arithmetic
     const sumCounts = Array(19).fill(0);
     let sumWeights = 0;
     for (let i = 0; i < posLimit; i++) {
@@ -944,6 +987,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumArith = arithmeticScores.reduce((a, b) => a + b, 0);
     const normalizedArithmetic = arithmeticScores.map(val => val / (sumArith || 1));
 
+    // 8. Modulo
     const moduloCounts = Array(10).fill(0);
     for (let i = 0; i < posLimit; i++) {
       const pairs = extractDrawPairs(data[i]);
@@ -961,6 +1005,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumMod = moduloCounts.reduce((a, b) => a + b, 0);
     const normalizedModulo = moduloCounts.map(val => val / (sumMod || 1));
 
+    // 9. Bayesian
     const getOEState = (draw) => {
       const pairs = extractDrawPairs(draw);
       if (pairs.length === 0) return 0;
@@ -987,6 +1032,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumBayes = bayesianScores.reduce((a, b) => a + b, 0);
     const normalizedBayes = bayesianScores.map(val => val / (sumBayes || 1));
 
+    // 10. Fibonacci
     const fibonacciNumbers = [1, 2, 3, 5, 8, 13, 21, 34];
     const fibonacciScores = Array(10).fill(0);
     for (let d = 0; d < 10; d++) {
@@ -1002,6 +1048,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumFib = fibonacciScores.reduce((a, b) => a + b, 0);
     const normalizedFibonacci = fibonacciScores.map(val => val / (sumFib || 1));
 
+    // 11. Momentum Index (MACD)
     const momentumScores = Array(10).fill(0);
     const shortLimit = Math.min(data.length, 5);
     const longLimit = Math.min(data.length, 20);
@@ -1033,6 +1080,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumMom = positiveMom.reduce((a, b) => a + b, 0);
     const normalizedMomentum = positiveMom.map(val => val / (sumMom || 1));
 
+    // 12. Benford Skewness Deviation
     const expectedFreq = 0.10;
     const slidingLimit = Math.min(data.length, 25);
     const digitCounts = Array(10).fill(0);
@@ -1052,6 +1100,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumBen = benfordScores.reduce((a, b) => a + b, 0);
     const normalizedBenford = benfordScores.map(v => v / (sumBen || 1));
 
+    // 13. Shannon Entropy
     const entropyScores = Array(10).fill(0);
     const blocks = 4;
     const blockSize = 6;
@@ -1083,6 +1132,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumEnt = entropyScores.reduce((a, b) => a + b, 0);
     const normalizedEntropy = entropyScores.map(v => v / (sumEnt || 1));
 
+    // 14. Fourier Sinusoidal Spectral Density
     const fourierScores = Array(10).fill(0);
     const fN = Math.min(data.length, 30);
     const fPeriods = [3, 5, 8, 12];
@@ -1123,11 +1173,9 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     for (let d = 0; d < 10; d++) {
       const x = Array(arN).fill(0);
       for (let i = 0; i < arN; i++) {
-        const dStr = data[i].twoDigitBack;
-        if (dStr && dStr.length === 2) {
-          if (parseInt(dStr[0], 10) === d || parseInt(dStr[1], 10) === d) {
-            x[i] = 1;
-          }
+        const digits = extractDrawDigits(data[i]);
+        if (digits.some(item => item.d === d)) {
+          x[i] = 1;
         }
       }
       let r0 = 0, r1 = 0, r2 = 0;
@@ -1149,12 +1197,86 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumArm = armScores.reduce((a, b) => a + b, 0);
     const normalizedArm = armScores.map(v => v / (sumArm || 1));
 
+    // 16. Kalman Filter State Estimator (DSP Noise Reduction)
+    const kalmanScores = Array(10).fill(0);
+    const kLimit = Math.min(data.length, 20);
+    for (let d = 0; d < 10; d++) {
+      let x_est = 0.10;
+      let p_cov = 1.0;
+      const Q = 0.03;
+      const R = 0.25;
+      for (let i = kLimit - 1; i >= 0; i--) {
+        const digits = extractDrawDigits(data[i]);
+        let z_meas = 0;
+        digits.forEach(item => {
+          if (item.d === d) z_meas = Math.max(z_meas, item.w);
+        });
+        p_cov += Q;
+        const K = p_cov / (p_cov + R);
+        x_est += K * (z_meas - x_est);
+        p_cov = (1 - K) * p_cov;
+      }
+      kalmanScores[d] = Math.max(0.01, x_est);
+    }
+    const sumKal = kalmanScores.reduce((a, b) => a + b, 0);
+    const normalizedKalman = kalmanScores.map(v => v / (sumKal || 1));
+
+    // 17. Chi-Square Goodness-of-Fit Residuals (Statistical Mean Reversion)
+    const chiScores = Array(10).fill(0);
+    const chiWindow = Math.min(data.length, 24);
+    const chiCounts = Array(10).fill(0);
+    let totalChiWeight = 0;
+    for (let i = 0; i < chiWindow; i++) {
+      const digits = extractDrawDigits(data[i]);
+      digits.forEach(item => {
+        chiCounts[item.d] += item.w;
+        totalChiWeight += item.w;
+      });
+    }
+    const expectedChi = (totalChiWeight / 10) || 1;
+    for (let d = 0; d < 10; d++) {
+      const observed = chiCounts[d];
+      const residual = (expectedChi - observed) / Math.sqrt(expectedChi);
+      chiScores[d] = 1 / (1 + Math.exp(-residual));
+    }
+    const sumChi = chiScores.reduce((a, b) => a + b, 0);
+    const normalizedChi = chiScores.map(v => v / (sumChi || 1));
+
+    // 18. Monte Carlo Stochastic Path Simulation (1,000 trials)
+    const mcScores = Array(10).fill(0);
+    const numTrials = 1000;
+    const cumTransition = Array(10).fill(0).map(() => Array(10).fill(0));
+    for (let u = 0; u < 10; u++) {
+      let rowSum = 0;
+      for (let v = 0; v < 10; v++) rowSum += (transitionMatrix[u][v] + 0.1);
+      let cum = 0;
+      for (let v = 0; v < 10; v++) {
+        cum += (transitionMatrix[u][v] + 0.1) / rowSum;
+        cumTransition[u][v] = cum;
+      }
+    }
+    const seedDigit = latestPairs.length > 0 ? latestPairs[0].d1 : 5;
+    for (let t = 0; t < numTrials; t++) {
+      const rand = prng();
+      let picked = 9;
+      for (let v = 0; v < 10; v++) {
+        if (rand <= cumTransition[seedDigit][v]) {
+          picked = v;
+          break;
+        }
+      }
+      mcScores[picked]++;
+    }
+    const sumMc = mcScores.reduce((a, b) => a + b, 0);
+    const normalizedMc = mcScores.map(v => v / (sumMc || 1));
+
     return {
       rec: recencyScores, co: normalizedCoOccur, ovd: overdueScores,
       mrk: normalizedMarkov, mrk2: normalizedMarkov2, pos: normalizedPositional,
       arith: normalizedArithmetic, mod: normalizedModulo, bay: normalizedBayes,
       fib: normalizedFibonacci, mom: normalizedMomentum, ben: normalizedBenford,
       ent: normalizedEntropy, fou: normalizedFourier, arm: normalizedArm,
+      kal: normalizedKalman, chi: normalizedChi, mc: normalizedMc,
       lastSeen
     };
   };
@@ -1167,15 +1289,17 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     activeConfig = defaultWeights;
   } else if (tuningMode === 'recency') {
     activeConfig = { 
-      wRec: 0.30, wCo: 0.08, wOvd: 0.05, wMrk: 0.05, wMrk2: 0.04, 
+      wRec: 0.25, wCo: 0.07, wOvd: 0.04, wMrk: 0.05, wMrk2: 0.04, 
       wPos: 0.04, wAr: 0.04, wMod: 0.04, wBay: 0.05, wFib: 0.04, 
-      wMom: 0.06, wBen: 0.04, wEnt: 0.06, wFou: 0.06, wArm: 0.06 
+      wMom: 0.05, wBen: 0.04, wEnt: 0.05, wFou: 0.05, wArm: 0.05,
+      wKal: 0.05, wChi: 0.04, wMc: 0.05
     };
   } else if (tuningMode === 'markov') {
     activeConfig = { 
-      wRec: 0.05, wCo: 0.05, wOvd: 0.04, wMrk: 0.25, wMrk2: 0.15, 
-      wPos: 0.04, wAr: 0.04, wMod: 0.04, wBay: 0.15, wFib: 0.04, 
-      wMom: 0.03, wBen: 0.04, wEnt: 0.04, wFou: 0.04, wArm: 0.04 
+      wRec: 0.05, wCo: 0.05, wOvd: 0.03, wMrk: 0.20, wMrk2: 0.12, 
+      wPos: 0.04, wAr: 0.04, wMod: 0.04, wBay: 0.12, wFib: 0.03, 
+      wMom: 0.03, wBen: 0.03, wEnt: 0.04, wFou: 0.04, wArm: 0.04,
+      wKal: 0.04, wChi: 0.03, wMc: 0.03
     };
   } else {
     // --- PRECALCULATE BACKTEST CHUNKS ---
@@ -1186,9 +1310,9 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       const precedingData = history.slice(b + 1);
       if (precedingData.length < 5) continue;
       
-      const layers = calculate15Layers(precedingData);
-      const actual = history[b].twoDigitBack;
-      const actualDigits = (actual && actual.length === 2) ? [parseInt(actual[0], 10), parseInt(actual[1], 10)] : [];
+      const layers = calculate18Layers(precedingData);
+      const actualPairs = extractDrawPairs(history[b]);
+      const actualDigits = actualPairs.length > 0 ? [actualPairs[0].d1, actualPairs[0].d2] : [];
       
       backtestCaches.push({
         layers,
@@ -1217,14 +1341,14 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
 
-    // Genetic Algorithm (GA) Weight Optimizer (8 Gen * 60 Pop)
-    const popSize = 60;
-    const generations = 8;
+    // Genetic Algorithm (GA) Weight Optimizer v12 (10 Gen * 80 Pop)
+    const popSize = 80;
+    const generations = 10;
     let population = [];
     
     // Generate initial population using seedable PRNG
     for (let j = 0; j < popSize; j++) {
-      const chromosome = Array(15).fill(0).map(() => pseudoRandom());
+      const chromosome = Array(18).fill(0).map(() => pseudoRandom());
       const sum = chromosome.reduce((a, b) => a + b, 0);
       population.push(chromosome.map(val => val / sum));
     }
@@ -1250,7 +1374,10 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
             (cache.layers.ben[d] * weights[11]) +
             (cache.layers.ent[d] * weights[12]) +
             (cache.layers.fou[d] * weights[13]) +
-            (cache.layers.arm[d] * weights[14]);
+            (cache.layers.arm[d] * weights[14]) +
+            (cache.layers.kal[d] * weights[15]) +
+            (cache.layers.chi[d] * weights[16]) +
+            (cache.layers.mc[d] * weights[17]);
           combined.push({ digit: d, score });
         }
         combined.sort((x, y) => y.score - x.score);
@@ -1273,7 +1400,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       const rated = population.map(chrom => ({ chrom, fitness: evaluateFitness(chrom) }));
       rated.sort((a, b) => b.fitness - a.fitness);
       
-      const elite = rated.slice(0, 15).map(x => x.chrom);
+      const elite = rated.slice(0, 20).map(x => x.chrom);
       const nextPop = [...elite];
       
       while (nextPop.length < popSize) {
@@ -1282,7 +1409,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
         let child = parent1.map((w, idx) => pseudoRandom() > 0.5 ? w : parent2[idx]);
         
         if (pseudoRandom() < 0.15) {
-          const mutIdx = Math.floor(pseudoRandom() * 15);
+          const mutIdx = Math.floor(pseudoRandom() * 18);
           child[mutIdx] = Math.max(0, child[mutIdx] + (pseudoRandom() * 0.1 - 0.05));
         }
         
@@ -1301,11 +1428,25 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     activeConfig = {
       wRec: bestWeights[0], wCo: bestWeights[1], wOvd: bestWeights[2], wMrk: bestWeights[3], wMrk2: bestWeights[4],
       wPos: bestWeights[5], wAr: bestWeights[6], wMod: bestWeights[7], wBay: bestWeights[8], wFib: bestWeights[9],
-      wMom: bestWeights[10], wBen: bestWeights[11], wEnt: bestWeights[12], wFou: bestWeights[13], wArm: bestWeights[14]
+      wMom: bestWeights[10], wBen: bestWeights[11], wEnt: bestWeights[12], wFou: bestWeights[13], wArm: bestWeights[14],
+      wKal: bestWeights[15], wChi: bestWeights[16], wMc: bestWeights[17]
     };
   }
 
-  const layers = calculate15Layers(history);
+  // Calculate final layers using pseudoRandom for Monte Carlo
+  let prngSeedFinal = 99999;
+  if (history.length > 0) {
+    const val = parseInt(history[0].firstPrize || history[0].twoDigitBack || '0', 10) || 0;
+    prngSeedFinal = (history.length * 2000) + val;
+  }
+  const pseudoRandomFinal = () => {
+    let t = prngSeedFinal += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+
+  const layers = calculate18Layers(history, pseudoRandomFinal);
   const optimizedScores = [];
   for (let d = 0; d < 10; d++) {
     optimizedScores.push(
@@ -1323,7 +1464,10 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       (layers.ben[d] * activeConfig.wBen) +
       (layers.ent[d] * activeConfig.wEnt) +
       (layers.fou[d] * activeConfig.wFou) +
-      (layers.arm[d] * activeConfig.wArm)
+      (layers.arm[d] * activeConfig.wArm) +
+      (layers.kal[d] * (activeConfig.wKal || 0.06)) +
+      (layers.chi[d] * (activeConfig.wChi || 0.05)) +
+      (layers.mc[d] * (activeConfig.wMc || 0.06))
     );
   }
 
@@ -1342,6 +1486,37 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
   const sortedList = predictionList.sort((a, b) => b.score - a.score);
   sortedList.activeWeights = activeConfig;
   return sortedList;
+}
+
+// Helper: Calculate dynamic next draw date for Thai lottery
+export function getNextThaiDrawDate(latestDateStr) {
+  if (!latestDateStr) return "1 พฤศจิกายน 2569";
+  const monthsThai = [
+    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+  ];
+  const parts = latestDateStr.trim().split(/\s+/);
+  if (parts.length !== 3) return "1 พฤศจิกายน 2569";
+  const day = parseInt(parts[0], 10);
+  const monthThai = parts[1];
+  let yearThai = parseInt(parts[2], 10);
+  const monthIdx = monthsThai.indexOf(monthThai);
+  if (monthIdx === -1) return "1 พฤศจิกายน 2569";
+
+  let nextDay = 1;
+  let nextMonthIdx = monthIdx;
+
+  if (day < 16) {
+    nextDay = 16;
+  } else {
+    nextDay = 1;
+    nextMonthIdx = (monthIdx + 1) % 12;
+    if (nextMonthIdx === 0) {
+      yearThai += 1;
+    }
+  }
+
+  return `${nextDay} ${monthsThai[nextMonthIdx]} ${yearThai}`;
 }
 
 // Calculator: Day Power (เลขกำลังวัน) & Day-of-Week Resonance
@@ -1365,25 +1540,29 @@ export function getDayPowerStats(history = [], targetDateStr = null) {
     ];
     const parts = dateStr.trim().split(/\s+/);
     if (parts.length !== 3) return null;
-    const day = parseInt(parts[0]);
+    const day = parseInt(parts[0], 10);
     const monthThai = parts[1];
-    const yearThai = parseInt(parts[2]);
+    const yearThai = parseInt(parts[2], 10);
     const monthIdx = monthsThai.indexOf(monthThai);
     if (monthIdx === -1) return null;
     const yearEng = yearThai - 543;
     return new Date(yearEng, monthIdx, day);
   };
 
-  let dayIdx = 2; // Default Tuesday (1 Sep 2569)
+  let dayIdx = 0; // Default Sunday (1 Nov 2569)
   if (targetDateStr) {
     const dt = parseThaiDateHelper(targetDateStr);
+    if (dt) dayIdx = dt.getDay();
+  } else if (history && history.length > 0) {
+    const nextDateStr = getNextThaiDrawDate(history[0]?.date);
+    const dt = parseThaiDateHelper(nextDateStr);
     if (dt) dayIdx = dt.getDay();
   } else {
     const now = new Date();
     dayIdx = now.getDay();
   }
 
-  const baseInfo = dayPowerMap[dayIdx] || dayPowerMap[2];
+  const baseInfo = dayPowerMap[dayIdx] || dayPowerMap[0];
 
   // Calculate historical frequency for this specific day of week
   const dayCounts = Array(10).fill(0);
