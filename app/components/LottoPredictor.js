@@ -168,6 +168,16 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
                     🎯 พยากรณ์งวดประจำวันที่: {nextTargetDate}
                   </span>
                 )}
+                {lottoType === 'lao' && (
+                  <span style={{ fontSize: '11px', color: '#00E5FF', background: 'rgba(0,229,255,0.08)', padding: '4px 10px', borderRadius: '12px', border: '1px solid rgba(0,229,255,0.3)', fontWeight: 'bold' }}>
+                    🎯 พยากรณ์รอบถัดไป: สตาร์ (15:45) / พัฒนา (20:30) / สามัคคี (21:30)
+                  </span>
+                )}
+                {lottoType === 'hanoi' && (
+                  <span style={{ fontSize: '11px', color: '#FF007F', background: 'rgba(255,0,127,0.08)', padding: '4px 10px', borderRadius: '12px', border: '1px solid rgba(255,0,127,0.3)', fontWeight: 'bold' }}>
+                    🎯 พยากรณ์รอบถัดไป: พิเศษ (17:15) / ปกติ (18:30) / VIP (19:15)
+                  </span>
+                )}
               </div>
             )}
           </div>
