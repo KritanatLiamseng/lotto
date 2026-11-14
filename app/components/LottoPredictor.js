@@ -108,7 +108,7 @@ export default function LottoPredictor({ lottoType = 'thai', lottoData = [] }) {
 • ชุด 3 ตัว: ${recommendedThreeDigits.join(', ')}
 ${lottoType === 'thai' ? `• ชุดรางวัลที่ 1 (6 หลัก): ${recommendedSixDigits[0]}` : ''}
 ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1]}${topDigits[2]}${predictions[3]?.digit || '9'}` : ''}
-⚡ ประมวลผลและปรับแต่งด้วย AI Super v12 Genetic Optimizer (15-Layer Ensemble)`;
+⚡ ประมวลผลและปรับแต่งด้วย AI Super v13 Deep Ensemble (22-Layer Genetic Optimizer)`;
 
     navigator.clipboard.writeText(textToCopy).then(() => {
       setCopySuccess(true);
@@ -284,7 +284,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
         {/* AI AUTO-TUNING & WEIGHTS DASHBOARD */}
         <div className="glass-card" style={{ borderLeft: `5px solid #A855F7` }}>
           <h2 style={{ fontSize: '18px', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#A855F7' }}>⚙️</span> แผงปรับจูนค่าน้ำหนักโมเดล AI Super v12
+          <span style={{ color: '#A855F7' }}>⚙️</span> แผงปรับจูนค่าน้ำหนักโมเดล AI Super v13
           </h2>
 
           {/* Mode Selector */}
@@ -375,7 +375,11 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
                 { label: 'AR(2) Autoreg', value: activeWeights.wArm || 0, color: '#00E676' },
                 { label: 'Kalman Filter', value: activeWeights.wKal || 0, color: '#F59E0B' },
                 { label: 'Chi-Square (ตกค้าง)', value: activeWeights.wChi || 0, color: '#EC4899' },
-                { label: 'Monte Carlo (1K)', value: activeWeights.wMc || 0, color: '#8B5CF6' }
+                { label: 'Monte Carlo (2K)', value: activeWeights.wMc || 0, color: '#8B5CF6' },
+                { label: 'LSTM Memory Gate', value: activeWeights.wLstm || 0, color: '#FF6B6B' },
+                { label: 'Wavelet Multi-Res', value: activeWeights.wWave || 0, color: '#4ECDC4' },
+                { label: 'Cross-Draw Corr', value: activeWeights.wCross || 0, color: '#45B7D1' },
+                { label: 'Volatility Index', value: activeWeights.wVol || 0, color: '#96CEB4' }
               ].map((item, idx) => (
                 <div key={idx} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '8px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{item.label}</span>
@@ -499,7 +503,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
         <div className="glass-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <h2 style={{ fontSize: '20px', margin: 0 }}>
-              📊 กราฟวิเคราะห์พลังความน่าจะเป็น AI Super v12 (0 - 9)
+              📊 กราฟวิเคราะห์พลังความน่าจะเป็น AI Super v13 (0 - 9)
             </h2>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.03)', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
               ประมวลผลสดใหม่ 100%
@@ -519,14 +523,24 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
                   <div style={{ width: '30px', fontWeight: 'bold', fontSize: '16px', color: index < 3 ? theme.primary : 'inherit' }}>
                     #{item.digit}
                   </div>
-                  <div style={{ flex: 1, background: 'rgba(255,255,255,0.05)', borderRadius: '10px', height: '24px', overflow: 'hidden', position: 'relative' }}>
-                    <div style={{ 
-                      width: `${Math.max(item.probability, 5)}%`, 
-                      background: barColor, 
-                      height: '100%', 
-                      borderRadius: '10px',
-                      transition: 'width 1s ease-in-out'
-                    }}></div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '10px', height: '24px', overflow: 'hidden', position: 'relative' }}>
+                      <div style={{ 
+                        width: `${Math.max(item.probability, 5)}%`, 
+                        background: barColor, 
+                        height: '100%', 
+                        borderRadius: '10px',
+                        transition: 'width 1s ease-in-out'
+                      }}></div>
+                    </div>
+                    {index < 5 && (
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '3px', alignItems: 'center' }}>
+                        <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: '4px', height: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: `${item.confidence || 0}%`, height: '100%', background: index < 3 ? '#10B981' : '#6B7280', transition: 'width 1s ease' }}></div>
+                        </div>
+                        <span style={{ fontSize: '9px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Confidence {item.confidence || 0}%</span>
+                      </div>
+                    )}
                   </div>
                   <div style={{ width: '45px', textAlign: 'right', fontWeight: 'bold', fontSize: '14px' }}>
                     {item.probability}%
@@ -543,7 +557,7 @@ ${lottoType === 'lao' ? `• ชุด 4 ตัว: ${topDigits[0]}${topDigits[1
         {/* Global Accuracy Gauge */}
         <div className="glass-card" style={{ textAlign: 'center' }}>
           <h3 style={{ fontSize: '16px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-            🏆 อัตราแม่นยำย้อนหลังของ AI Super v12
+            🏆 อัตราแม่นยำย้อนหลังของ AI Super v13
           </h3>
           <div style={{ fontSize: '48px', fontWeight: 'bold', color: theme.primary, textShadow: `0 0 20px ${theme.primary}` }}>
             {globalAccuracy}%

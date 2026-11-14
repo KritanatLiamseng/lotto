@@ -805,13 +805,14 @@ export function getDigitStats(history = []) {
   }));
 }
 
-// Calculator 2: Dynamic Probability Model using Upgraded 18-Layer AI Super v12 Deep Ensemble Engine
+// Calculator 2: Dynamic Probability Model using Upgraded 22-Layer AI Super v13 Deep Ensemble Engine
 export function getPredictionStats(history = [], tuningMode = 'auto', customWeights = null) {
   const defaultWeights = { 
-    wRec: 0.09, wCo: 0.08, wOvd: 0.04, wMrk: 0.07, wMrk2: 0.05, 
-    wPos: 0.05, wAr: 0.04, wMod: 0.04, wBay: 0.06, wFib: 0.04, 
-    wMom: 0.05, wBen: 0.05, wEnt: 0.06, wFou: 0.06, wArm: 0.06,
-    wKal: 0.06, wChi: 0.05, wMc: 0.06
+    wRec: 0.08, wCo: 0.07, wOvd: 0.04, wMrk: 0.07, wMrk2: 0.05, 
+    wPos: 0.04, wAr: 0.03, wMod: 0.03, wBay: 0.06, wFib: 0.04, 
+    wMom: 0.05, wBen: 0.04, wEnt: 0.05, wFou: 0.05, wArm: 0.05,
+    wKal: 0.05, wChi: 0.04, wMc: 0.05,
+    wLstm: 0.06, wWave: 0.05, wCross: 0.05, wVol: 0.04
   };
   
   if (history.length === 0) {
@@ -831,8 +832,8 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     return fallback;
   }
 
-  // --- LAYER CALCULATOR HELPER (18 LAYERS) ---
-  const calculate18Layers = (data, prng = Math.random) => {
+  // --- LAYER CALCULATOR HELPER (22 LAYERS) v13 ---
+  const calculate22Layers = (data, prng = Math.random) => {
     // 1. Recency (Multi-Prize Weighted)
     const recencyCounts = Array(10).fill(0);
     let totalWeights = 0;
@@ -1242,9 +1243,9 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumChi = chiScores.reduce((a, b) => a + b, 0);
     const normalizedChi = chiScores.map(v => v / (sumChi || 1));
 
-    // 18. Monte Carlo Stochastic Path Simulation (1,000 trials)
+    // 18. Monte Carlo Stochastic Path Simulation (2,000 trials)
     const mcScores = Array(10).fill(0);
-    const numTrials = 1000;
+    const numTrials = 2000;
     const cumTransition = Array(10).fill(0).map(() => Array(10).fill(0));
     for (let u = 0; u < 10; u++) {
       let rowSum = 0;
@@ -1270,6 +1271,122 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     const sumMc = mcScores.reduce((a, b) => a + b, 0);
     const normalizedMc = mcScores.map(v => v / (sumMc || 1));
 
+    // --- NEW v13 LAYER 19: LSTM-style Rolling Window Gradient ---
+    // Simulates LSTM memory cells using exponential moving averages with momentum gating
+    const lstmScores = Array(10).fill(0);
+    const lstmLimit = Math.min(data.length, 24);
+    for (let d = 0; d < 10; d++) {
+      let ema_fast = 0.1, ema_slow = 0.1, cell_state = 0.1;
+      const alpha_fast = 0.4, alpha_slow = 0.1;
+      for (let i = lstmLimit - 1; i >= 0; i--) {
+        const digits = extractDrawDigits(data[i]);
+        let present = 0;
+        digits.forEach(item => { if (item.d === d) present = Math.max(present, item.w); });
+        const gate_forget = 1 / (1 + Math.exp(-(cell_state - 0.1)));
+        cell_state = gate_forget * cell_state + (1 - gate_forget) * present;
+        ema_fast = alpha_fast * present + (1 - alpha_fast) * ema_fast;
+        ema_slow = alpha_slow * present + (1 - alpha_slow) * ema_slow;
+      }
+      lstmScores[d] = Math.max(0.01, (ema_fast * 0.5 + ema_slow * 0.3 + cell_state * 0.2));
+    }
+    const sumLstm = lstmScores.reduce((a, b) => a + b, 0);
+    const normalizedLstm = lstmScores.map(v => v / (sumLstm || 1));
+
+    // --- NEW v13 LAYER 20: Wavelet Multi-Resolution Analysis ---
+    // Decomposes time series at multiple resolution scales (Haar-like wavelet)
+    const waveScores = Array(10).fill(0);
+    const waveN = Math.min(data.length, 32);
+    const scales = [2, 4, 8, 16];
+    for (let d = 0; d < 10; d++) {
+      const signal = Array(waveN).fill(0);
+      for (let i = 0; i < waveN; i++) {
+        const digits = extractDrawDigits(data[i]);
+        digits.forEach(item => { if (item.d === d) signal[i] = item.w; });
+      }
+      let waveSum = 0;
+      scales.forEach((scale, si) => {
+        const scaleWeight = 1 / (si + 1);
+        for (let i = 0; i + scale <= waveN; i += scale) {
+          const half = scale / 2;
+          let detail = 0;
+          for (let j = 0; j < half; j++) detail += signal[i + j];
+          for (let j = half; j < scale; j++) detail -= signal[i + j];
+          detail = Math.abs(detail / scale);
+          waveSum += detail * scaleWeight;
+        }
+      });
+      waveScores[d] = Math.max(0.01, waveSum);
+    }
+    const sumWave = waveScores.reduce((a, b) => a + b, 0);
+    const normalizedWave = waveScores.map(v => v / (sumWave || 1));
+
+    // --- NEW v13 LAYER 21: Cross-Draw Correlation Matrix (All Prize Types) ---
+    // Cross-correlate 2-digit, 3-digit-back, 3-digit-front and first prize digits
+    const crossScores = Array(10).fill(0);
+    const crossLimit = Math.min(data.length, 20);
+    const crossMatrix = Array(10).fill(0).map(() => Array(10).fill(0));
+    for (let i = 0; i < crossLimit; i++) {
+      const draw = data[i];
+      const allDigits = [];
+      if (draw.firstPrize) {
+        for (const ch of draw.firstPrize) allDigits.push({ d: parseInt(ch, 10), w: 0.6 });
+      }
+      if (draw.twoDigitBack && draw.twoDigitBack.length === 2) {
+        allDigits.push({ d: parseInt(draw.twoDigitBack[0], 10), w: 1.0 });
+        allDigits.push({ d: parseInt(draw.twoDigitBack[1], 10), w: 1.0 });
+      }
+      if (Array.isArray(draw.threeDigitBack)) {
+        draw.threeDigitBack.forEach(t3 => {
+          if (t3 && t3.length === 3) {
+            [0,1,2].forEach(j => allDigits.push({ d: parseInt(t3[j], 10), w: 0.5 }));
+          }
+        });
+      }
+      const decay = Math.pow(0.85, i);
+      for (let a = 0; a < allDigits.length; a++) {
+        for (let b2 = a + 1; b2 < allDigits.length; b2++) {
+          const da = allDigits[a].d, db = allDigits[b2].d;
+          const w = decay * allDigits[a].w * allDigits[b2].w;
+          crossMatrix[da][db] += w;
+          crossMatrix[db][da] += w;
+        }
+      }
+    }
+    // Project cross-draw correlation to per-digit score
+    if (latestPairs.length > 0) {
+      const seedDigits = new Set(latestPairs.flatMap(p => [p.d1, p.d2]));
+      seedDigits.forEach(sd => {
+        for (let d = 0; d < 10; d++) crossScores[d] += crossMatrix[sd][d];
+      });
+    } else {
+      for (let d = 0; d < 10; d++) {
+        crossScores[d] = crossMatrix[d].reduce((a, b) => a + b, 0);
+      }
+    }
+    const sumCross = crossScores.reduce((a, b) => a + b, 0);
+    const normalizedCross = crossScores.map(v => Math.max(0.001, v) / (sumCross || 1));
+
+    // --- NEW v13 LAYER 22: Adaptive Volatility Index ---
+    // Measures digit-level volatility (standard deviation of appearance) to find stable hot digits
+    const volScores = Array(10).fill(0);
+    const volLimit = Math.min(data.length, 20);
+    for (let d = 0; d < 10; d++) {
+      const appearances = [];
+      for (let i = 0; i < volLimit; i++) {
+        const digits = extractDrawDigits(data[i]);
+        const weightedPresence = digits.filter(item => item.d === d).reduce((s, item) => s + item.w, 0);
+        appearances.push(weightedPresence);
+      }
+      const mean = appearances.reduce((s, v) => s + v, 0) / (volLimit || 1);
+      const variance = appearances.reduce((s, v) => s + (v - mean) * (v - mean), 0) / (volLimit || 1);
+      const stdDev = Math.sqrt(variance);
+      // High mean + low volatility = stable hot digit => boost score
+      // Low mean + high volatility = unstable => reduce
+      volScores[d] = Math.max(0.01, mean * (1 / (1 + stdDev)));
+    }
+    const sumVol = volScores.reduce((a, b) => a + b, 0);
+    const normalizedVol = volScores.map(v => v / (sumVol || 1));
+
     return {
       rec: recencyScores, co: normalizedCoOccur, ovd: overdueScores,
       mrk: normalizedMarkov, mrk2: normalizedMarkov2, pos: normalizedPositional,
@@ -1277,6 +1394,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       fib: normalizedFibonacci, mom: normalizedMomentum, ben: normalizedBenford,
       ent: normalizedEntropy, fou: normalizedFourier, arm: normalizedArm,
       kal: normalizedKalman, chi: normalizedChi, mc: normalizedMc,
+      lstm: normalizedLstm, wave: normalizedWave, cross: normalizedCross, vol: normalizedVol,
       lastSeen
     };
   };
@@ -1284,33 +1402,35 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
   let activeConfig = null;
 
   if (tuningMode === 'custom' && customWeights) {
-    activeConfig = customWeights;
+    activeConfig = { ...defaultWeights, ...customWeights };
   } else if (tuningMode === 'balanced') {
     activeConfig = defaultWeights;
   } else if (tuningMode === 'recency') {
     activeConfig = { 
-      wRec: 0.25, wCo: 0.07, wOvd: 0.04, wMrk: 0.05, wMrk2: 0.04, 
-      wPos: 0.04, wAr: 0.04, wMod: 0.04, wBay: 0.05, wFib: 0.04, 
-      wMom: 0.05, wBen: 0.04, wEnt: 0.05, wFou: 0.05, wArm: 0.05,
-      wKal: 0.05, wChi: 0.04, wMc: 0.05
+      wRec: 0.22, wCo: 0.06, wOvd: 0.04, wMrk: 0.05, wMrk2: 0.04, 
+      wPos: 0.03, wAr: 0.03, wMod: 0.03, wBay: 0.04, wFib: 0.03, 
+      wMom: 0.05, wBen: 0.03, wEnt: 0.04, wFou: 0.04, wArm: 0.04,
+      wKal: 0.04, wChi: 0.03, wMc: 0.04,
+      wLstm: 0.07, wWave: 0.04, wCross: 0.04, wVol: 0.06
     };
   } else if (tuningMode === 'markov') {
     activeConfig = { 
-      wRec: 0.05, wCo: 0.05, wOvd: 0.03, wMrk: 0.20, wMrk2: 0.12, 
-      wPos: 0.04, wAr: 0.04, wMod: 0.04, wBay: 0.12, wFib: 0.03, 
-      wMom: 0.03, wBen: 0.03, wEnt: 0.04, wFou: 0.04, wArm: 0.04,
-      wKal: 0.04, wChi: 0.03, wMc: 0.03
+      wRec: 0.04, wCo: 0.04, wOvd: 0.03, wMrk: 0.18, wMrk2: 0.11, 
+      wPos: 0.03, wAr: 0.03, wMod: 0.03, wBay: 0.11, wFib: 0.02, 
+      wMom: 0.03, wBen: 0.02, wEnt: 0.03, wFou: 0.03, wArm: 0.03,
+      wKal: 0.03, wChi: 0.03, wMc: 0.04,
+      wLstm: 0.07, wWave: 0.05, wCross: 0.08, wVol: 0.04
     };
   } else {
     // --- PRECALCULATE BACKTEST CHUNKS ---
-    const backtestLimit = Math.min(history.length - 3, 10);
+    const backtestLimit = Math.min(history.length - 3, 12);
     const backtestCaches = [];
     
     for (let b = 1; b <= backtestLimit; b++) {
       const precedingData = history.slice(b + 1);
       if (precedingData.length < 5) continue;
       
-      const layers = calculate18Layers(precedingData);
+      const layers = calculate22Layers(precedingData);
       const actualPairs = extractDrawPairs(history[b]);
       const actualDigits = actualPairs.length > 0 ? [actualPairs[0].d1, actualPairs[0].d2] : [];
       
@@ -1341,19 +1461,19 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
 
-    // Genetic Algorithm (GA) Weight Optimizer v12 (10 Gen * 80 Pop)
-    const popSize = 80;
-    const generations = 10;
+    // Genetic Algorithm (GA) Weight Optimizer v13 (20 Gen * 150 Pop * 22 Layers)
+    const popSize = 150;
+    const generations = 20;
     let population = [];
     
-    // Generate initial population using seedable PRNG
+    // Generate initial population using seedable PRNG (22 genes for 22 layers)
     for (let j = 0; j < popSize; j++) {
-      const chromosome = Array(18).fill(0).map(() => pseudoRandom());
+      const chromosome = Array(22).fill(0).map(() => pseudoRandom());
       const sum = chromosome.reduce((a, b) => a + b, 0);
       population.push(chromosome.map(val => val / sum));
     }
     
-    // Fast fitness evaluation
+    // Fast fitness evaluation (22 layers)
     const evaluateFitness = (weights) => {
       let fitness = 0;
       backtestCaches.forEach(cache => {
@@ -1377,40 +1497,67 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
             (cache.layers.arm[d] * weights[14]) +
             (cache.layers.kal[d] * weights[15]) +
             (cache.layers.chi[d] * weights[16]) +
-            (cache.layers.mc[d] * weights[17]);
+            (cache.layers.mc[d] * weights[17]) +
+            ((cache.layers.lstm?.[d] || 0) * weights[18]) +
+            ((cache.layers.wave?.[d] || 0) * weights[19]) +
+            ((cache.layers.cross?.[d] || 0) * weights[20]) +
+            ((cache.layers.vol?.[d] || 0) * weights[21]);
           combined.push({ digit: d, score });
         }
         combined.sort((x, y) => y.score - x.score);
         const top3 = [combined[0].digit, combined[1].digit, combined[2].digit];
+        const top5 = combined.slice(0, 5).map(c => c.digit);
         
         let hits = 0;
         cache.actualDigits.forEach(act => {
-          if (top3.includes(act)) hits++;
+          if (top3.includes(act)) hits += 1.0;
+          else if (top5.includes(act)) hits += 0.3; // partial reward for top5
         });
         if (cache.actualDigits.length === 2 && cache.actualDigits[0] === cache.actualDigits[1] && top3.includes(cache.actualDigits[0])) {
-          hits--;
+          hits -= 0.5;
         }
         fitness += (hits * cache.decay);
       });
       return fitness;
     };
 
-    // Run generations
+    // Run generations with adaptive mutation rate and tournament selection
     for (let gen = 0; gen < generations; gen++) {
       const rated = population.map(chrom => ({ chrom, fitness: evaluateFitness(chrom) }));
       rated.sort((a, b) => b.fitness - a.fitness);
       
-      const elite = rated.slice(0, 20).map(x => x.chrom);
+      const eliteCount = Math.floor(popSize * 0.2); // top 20% elite
+      const elite = rated.slice(0, eliteCount).map(x => x.chrom);
       const nextPop = [...elite];
       
+      // Adaptive mutation rate decreases as generation increases
+      const mutRate = 0.20 - (gen / generations) * 0.10;
+      const mutStrength = 0.12 - (gen / generations) * 0.06;
+      
       while (nextPop.length < popSize) {
-        const parent1 = elite[Math.floor(pseudoRandom() * elite.length)];
-        const parent2 = elite[Math.floor(pseudoRandom() * elite.length)];
-        let child = parent1.map((w, idx) => pseudoRandom() > 0.5 ? w : parent2[idx]);
+        // Tournament selection (pick best of 3 random)
+        const tournament = () => {
+          const candidates = [0, 1, 2].map(() => rated[Math.floor(pseudoRandom() * eliteCount * 2)]);
+          candidates.sort((a, b) => b.fitness - a.fitness);
+          return candidates[0].chrom;
+        };
+        const parent1 = tournament();
+        const parent2 = tournament();
         
-        if (pseudoRandom() < 0.15) {
-          const mutIdx = Math.floor(pseudoRandom() * 18);
-          child[mutIdx] = Math.max(0, child[mutIdx] + (pseudoRandom() * 0.1 - 0.05));
+        // Multi-point crossover (2 crossover points)
+        const pts = [Math.floor(pseudoRandom() * 22), Math.floor(pseudoRandom() * 22)].sort((a, b) => a - b);
+        let child = parent1.map((w, idx) => {
+          if (idx >= pts[0] && idx < pts[1]) return parent2[idx];
+          return w;
+        });
+        
+        // Adaptive mutation
+        if (pseudoRandom() < mutRate) {
+          const numMut = Math.floor(pseudoRandom() * 3) + 1; // mutate 1-3 genes
+          for (let mi = 0; mi < numMut; mi++) {
+            const mutIdx = Math.floor(pseudoRandom() * 22);
+            child[mutIdx] = Math.max(0.001, child[mutIdx] + (pseudoRandom() * mutStrength * 2 - mutStrength));
+          }
         }
         
         const sum = child.reduce((a, b) => a + b, 0);
@@ -1429,7 +1576,8 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       wRec: bestWeights[0], wCo: bestWeights[1], wOvd: bestWeights[2], wMrk: bestWeights[3], wMrk2: bestWeights[4],
       wPos: bestWeights[5], wAr: bestWeights[6], wMod: bestWeights[7], wBay: bestWeights[8], wFib: bestWeights[9],
       wMom: bestWeights[10], wBen: bestWeights[11], wEnt: bestWeights[12], wFou: bestWeights[13], wArm: bestWeights[14],
-      wKal: bestWeights[15], wChi: bestWeights[16], wMc: bestWeights[17]
+      wKal: bestWeights[15], wChi: bestWeights[16], wMc: bestWeights[17],
+      wLstm: bestWeights[18], wWave: bestWeights[19], wCross: bestWeights[20], wVol: bestWeights[21]
     };
   }
 
@@ -1446,7 +1594,7 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 
-  const layers = calculate18Layers(history, pseudoRandomFinal);
+  const layers = calculate22Layers(history, pseudoRandomFinal);
   const optimizedScores = [];
   for (let d = 0; d < 10; d++) {
     optimizedScores.push(
@@ -1465,20 +1613,31 @@ export function getPredictionStats(history = [], tuningMode = 'auto', customWeig
       (layers.ent[d] * activeConfig.wEnt) +
       (layers.fou[d] * activeConfig.wFou) +
       (layers.arm[d] * activeConfig.wArm) +
-      (layers.kal[d] * (activeConfig.wKal || 0.06)) +
-      (layers.chi[d] * (activeConfig.wChi || 0.05)) +
-      (layers.mc[d] * (activeConfig.wMc || 0.06))
+      (layers.kal[d] * (activeConfig.wKal || 0.05)) +
+      (layers.chi[d] * (activeConfig.wChi || 0.04)) +
+      (layers.mc[d] * (activeConfig.wMc || 0.05)) +
+      ((layers.lstm?.[d] || 0) * (activeConfig.wLstm || 0.06)) +
+      ((layers.wave?.[d] || 0) * (activeConfig.wWave || 0.05)) +
+      ((layers.cross?.[d] || 0) * (activeConfig.wCross || 0.05)) +
+      ((layers.vol?.[d] || 0) * (activeConfig.wVol || 0.04))
     );
   }
 
   const totalScoreSum = optimizedScores.reduce((sum, score) => sum + score, 0);
+  const maxScore = Math.max(...optimizedScores);
+  const minScore = Math.min(...optimizedScores);
+  const scoreRange = maxScore - minScore || 1;
+
   const predictionList = [];
   for (let d = 0; d < 10; d++) {
     const rawScore = optimizedScores[d];
+    // Confidence: how far above average is this digit (0-100)
+    const confidence = Math.round(((rawScore - minScore) / scoreRange) * 100);
     predictionList.push({
       digit: d,
       score: rawScore,
       probability: Math.round((rawScore / (totalScoreSum || 1)) * 100),
+      confidence,
       lastSeen: layers.lastSeen[d]
     });
   }
